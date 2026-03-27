@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>精力统计</title>
+  <script src="chart.js"></script>
+  <style>
+    body { max-width: 800px; margin: 0 auto; padding: 20px; font-family: system-ui; background: #f9fafb; }
+    .chart-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .logs { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); height: 400px; overflow-y: auto; }
+    .log-item { padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; display: flex; justify-content: space-between; }
+    .log-time { color: #9ca3af; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h2>数据统计板</h2>
+  <div class="chart-container">
+    <canvas id="myChart"></canvas>
+  </div>
+  <div class="logs" id="logContainer">
+    <h3>日志流</h3>
+    </div>
+  <script src="stats.js"></script>
+</body>
+</html>

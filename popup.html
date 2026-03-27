@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { width: 320px; font-family: system-ui; padding: 10px; margin: 0; background: #f9fafb; user-select: none; }
+    .card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+    /* 精力条 */
+    .bar-container { width: 100%; height: 24px; background: #e5e7eb; border-radius: 12px; overflow: hidden; position: relative; }
+    .bar-fill { height: 100%; transition: width 0.3s, background-color 0.3s; }
+    .bar-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; text-align: center; line-height: 24px; font-size: 13px; font-weight: bold; color: #fff; text-shadow: 0px 0px 4px rgba(0,0,0,0.8); z-index: 10; pointer-events: none; }
+
+    /* 番茄钟环形进度与遮罩 */
+    .pomo-wrapper { position: relative; width: 140px; margin: 0 auto; }
+    .pomo-refresh { position: absolute; top: 0; right: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: #f3f4f6; border-radius: 50%; cursor: pointer; z-index: 20; opacity: 0.6; transition: 0.2s; font-size: 12px; }
+    .pomo-refresh:hover { opacity: 1; background: #e5e7eb; }
+
+    .pomodoro-circle { width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(var(--pomo-color, #3b82f6) var(--p, 100%), #e5e7eb 0); margin: 0 auto; position: relative; cursor: pointer; transition: 0.3s; }
+    .pomo-inner { position: absolute; top: 6px; left: 6px; right: 6px; bottom: 6px; background: white; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; }
+    .pomo-time { font-size: 26px; font-weight: bold; color: #1f2937; }
+    .pomo-stats { font-size: 10px; color: #6b7280; text-align: center; margin-top: 4px; }
+
+    /* 遮罩交互层 */
+    .pomo-overlay { position: absolute; top: 6px; left: 6px; right: 6px; bottom: 6px; background: rgba(255,255,255,0.85); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; z-index: 10; transition: opacity 0.2s; }
+    .pomodoro-circle.paused .pomo-overlay { opacity: 1; color: #3b82f6; } /* 暂停时常驻播放键 */
+    .pomodoro-circle.running .pomo-overlay { opacity: 0; color: #10b981; } /* 运行时隐藏 */
+    .pomodoro-circle.running:hover .pomo-overlay { opacity: 1; } /* 运行时 hover 显示暂停键 */
+
+    /* 任务网格 */
+    .tasks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .task-item { font-size: 12px; display: flex; flex-direction: column; }
+    .task-item input { border: 1px solid #d1d5db; border-radius: 4px; padding: 4px; font-size: 12px; outline: none; }
+
+    /* 喝水按钮优化 */
+    .water-btn { background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #4b5563; transition: 0.2s; font-weight: bold; }
+    .water-btn:hover { background: #e5e7eb; }
+    .water-btn.done { background: #0ea5e9; color: white; border-color: #0ea5e9; cursor: not-allowed; pointer-events: none; }
+
+    .btn-stats { width: 100%; padding: 8px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="bar-container">
+      <div class="bar-fill" id="energyFill"></div>
+      <div class="bar-text" id="energyText">-- / --</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="pomo-wrapper">
+      <div class="pomo-refresh" id="pomoRefresh" title="重新开始">🔄</div>
+      <div class="pomodoro-circle paused" id="pomoBtn" style="--p: 100%; --pomo-color: #3b82f6;">
+        <div class="pomo-inner">
+          <div class="pomo-time" id="pomoTime">25:00</div>
+          <div class="pomo-stats" id="pomoStats">总: 0 | 完美: 0</div>
+        </div>
+        <div class="pomo-overlay" id="pomoOverlay">▶</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tasks-grid">
+      <div class="task-item"><label>睡眠(h)</label><input type="number" id="t-sleep" placeholder="目标:8"></div>
+      <div class="task-item"><label>运动(min)</label><input type="number" id="t-exer" placeholder="目标:30"></div>
+      <div class="task-item"><label>早饭时间</label><input type="time" id="t-bf"></div>
+      <div class="task-item"><div class="water-btn" id="t-w1">💧 喝水 1</div></div>
+      <div class="task-item"><label>午饭时间</label><input type="time" id="t-lu"></div>
+      <div class="task-item"><div class="water-btn" id="t-w2">💧 喝水 2</div></div>
+      <div class="task-item"><label>晚饭时间</label><input type="time" id="t-di"></div>
+      <div class="task-item"><div class="water-btn" id="t-w3">💧 喝水 3</div></div>
+    </div>
+  </div>
+
+  <button class="btn-stats" id="btnStats">查看数据看板</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>
