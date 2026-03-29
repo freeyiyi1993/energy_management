@@ -14,6 +14,7 @@
   "dependencies": {
     "@types/chrome": "^0.1.38",
     "chart.js": "^4.5.1",
+    "firebase": "^12.11.0",
     "lucide-react": "^1.7.0",
     "react": "^19.2.4",
     "react-chartjs-2": "^5.3.1",
