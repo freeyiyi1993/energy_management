@@ -4,10 +4,8 @@ import RulesPage from '../../../shared/components/RulesPage';
 import StatsPage from '../../../shared/components/StatsPage';
 import SettingsPage from '../../../shared/components/SettingsPage';
 import MenuPanel from '../../../shared/components/MenuPanel';
-import { type StorageData } from '../../../shared/types';
+import { type StorageData, type PageType } from '../../../shared/types';
 import { storage } from '../../storage';
-
-export type PageType = 'main' | 'rules' | 'stats' | 'settings';
 
 export default function PopupApp() {
   const [currentPage, setCurrentPage] = useState<PageType>('main');
@@ -49,6 +47,7 @@ export default function PopupApp() {
       {currentPage === 'main' && (
         <MainDashboard
           data={data}
+          storage={storage}
           onOpenMenu={() => setMenuOpen(true)}
           onDataChange={fetchData}
         />
@@ -61,7 +60,7 @@ export default function PopupApp() {
       )}
 
       {currentPage === 'settings' && (
-        <SettingsPage data={data} onBack={() => navigateTo('main')} onSaved={fetchData} />
+        <SettingsPage data={data} storage={storage} onBack={() => navigateTo('main')} onSaved={fetchData} />
       )}
     </div>
   );

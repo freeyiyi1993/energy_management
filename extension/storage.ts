@@ -1,11 +1,12 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../shared/firebase';
-import { type StorageData, type StorageInterface } from '../shared/storage';
+import { type StorageData } from '../shared/types';
+import { type StorageInterface } from '../shared/storage';
 
 // --- Chrome 扩展存储实现 ---
 const chromeGet = async (keys: string[] | null): Promise<Partial<StorageData>> => {
-  if (keys === null) return chrome.storage.local.get(null) as Promise<StorageData>;
-  return chrome.storage.local.get(keys) as Promise<Partial<StorageData>>;
+  if (keys === null) return chrome.storage.local.get(null) as unknown as Promise<StorageData>;
+  return chrome.storage.local.get(keys as (keyof StorageData)[]) as unknown as Promise<Partial<StorageData>>;
 };
 
 const chromeSet = async (data: Partial<StorageData>): Promise<void> => {

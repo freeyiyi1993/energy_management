@@ -9,7 +9,7 @@ import SettingsPage from '../shared/components/SettingsPage';
 import MenuPanel from '../shared/components/MenuPanel';
 import AuthPanel from './components/AuthPanel';
 
-export type PageType = 'main' | 'rules' | 'stats' | 'settings';
+import { type PageType } from '../shared/types';
 
 export default function WebApp() {
   const [currentPage, setCurrentPage] = useState<PageType>('main');
@@ -67,6 +67,7 @@ export default function WebApp() {
           {currentPage === 'main' && (
             <MainDashboard
               data={data}
+              storage={storage}
               onOpenMenu={() => setMenuOpen(true)}
               onDataChange={fetchData}
             />
@@ -79,7 +80,7 @@ export default function WebApp() {
           )}
 
           {currentPage === 'settings' && (
-            <SettingsPage data={data} onBack={() => navigateTo('main')} onSaved={fetchData} />
+            <SettingsPage data={data} storage={storage} onBack={() => navigateTo('main')} onSaved={fetchData} />
           )}
         </div>
 

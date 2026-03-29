@@ -7,8 +7,8 @@ export const isChromeExtension = typeof chrome !== 'undefined' && !!chrome.stora
 
 // --- Chrome 扩展存储 ---
 const chromeGet = async (keys: string[] | null): Promise<Partial<StorageData>> => {
-  if (keys === null) return chrome.storage.local.get(null) as Promise<StorageData>;
-  return chrome.storage.local.get(keys) as Promise<Partial<StorageData>>;
+  if (keys === null) return chrome.storage.local.get(null) as unknown as Promise<StorageData>;
+  return chrome.storage.local.get(keys as (keyof StorageData)[]) as unknown as Promise<Partial<StorageData>>;
 };
 
 const chromeSet = async (data: Partial<StorageData>): Promise<void> => {
