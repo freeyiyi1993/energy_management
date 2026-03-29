@@ -1,6 +1,6 @@
-import { Menu, Play, RefreshCw, Droplet, Coffee, Activity, Moon, Brain, Wind } from 'lucide-react';
+import { Menu, Play, RefreshCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { type StorageData, type Tasks } from '../../../types';
+import { type StorageData, type CustomTaskDef, DEFAULT_TASK_DEFS } from '../../../types';
 
 
 interface Props {
@@ -11,21 +11,27 @@ interface Props {
 
 export default function MainDashboard({ data, onOpenMenu, onDataChange }: Props) {
   const { state, tasks, config } = data;
+  const taskDefs = (data.taskDefs || DEFAULT_TASK_DEFS).filter(d => d.enabled);
 
-  const [localSleep, setLocalSleep] = useState<string>('');
-  const [localExercise, setLocalExercise] = useState<string>('');
+  const [localInputs, setLocalInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (tasks?.sleep !== null && tasks?.sleep !== undefined) setLocalSleep(String(tasks.sleep));
-    if (tasks?.exercise !== null && tasks?.exercise !== undefined) setLocalExercise(String(tasks.exercise));
+    if (!tasks) return;
+    const inputs: Record<string, string> = {};
+    taskDefs.forEach(def => {
+      if (def.type === 'number' && tasks[def.id] !== null && tasks[def.id] !== undefined) {
+        inputs[def.id] = String(tasks[def.id]);
+      }
+    });
+    setLocalInputs(inputs);
   }, [tasks]);
 
   if (!state || !tasks || !config) return null;
 
   const energyPercent = Math.min(100, Math.max(0, (state.energy / state.maxEnergy) * 100));
-  let barColor = '#10b981'; // emerald-500
-  if (state.energy < 20) barColor = '#ef4444'; // red-500
-  else if (state.energy < 40) barColor = '#f59e0b'; // amber-500
+  let barColor = '#10b981';
+  if (state.energy < 20) barColor = '#ef4444';
+  else if (state.energy < 40) barColor = '#f59e0b';
 
   const pomoPercent = 100 - (state.pomodoro.timeLeft / (25 * 60)) * 100;
   const m = Math.floor(state.pomodoro.timeLeft / 60).toString().padStart(2, '0');
@@ -44,86 +50,127 @@ export default function MainDashboard({ data, onOpenMenu, onDataChange }: Props)
     onDataChange();
   };
 
-  const handleTaskSave = async (key: keyof Tasks, val: number | string | boolean) => {
-    // 允许累加的任务类型
-    const isCounterTask = ['meals', 'water', 'stretch', 'meditate'].includes(key);
+  const handleTaskSave = async (def: CustomTaskDef, val: number | boolean) => {
+    const isCounter = def.type === 'counter';
+    const maxCount = def.maxCount || 3;
 
-    if (!isCounterTask && tasks[key] !== null && tasks[key] !== false) return;
-    if (isCounterTask && (tasks[key] as number) >= 3) return;
+    if (!isCounter && tasks[def.id] !== null && tasks[def.id] !== false && tasks[def.id] !== undefined) return;
+    if (isCounter && (tasks[def.id] as number || 0) >= maxCount) return;
 
-    const d = await chrome.storage.local.get(['tasks', 'state', 'logs', 'config']) as StorageData;
+    const d = await chrome.storage.local.get(['tasks', 'state', 'logs', 'config', 'taskDefs']) as StorageData;
     if (!d.tasks || !d.state) return;
 
     const currentConfig = d.config || config;
     const oldEnergy = d.state.energy;
 
-    if (isCounterTask) {
-      (d.tasks as any)[key] = ((d.tasks as any)[key] || 0) + 1;
+    // 更新任务值
+    if (isCounter) {
+      d.tasks[def.id] = ((d.tasks[def.id] as number) || 0) + 1;
     } else {
-      (d.tasks as any)[key] = val;
+      d.tasks[def.id] = val;
     }
 
-    if (key === 'sleep' && typeof val === 'number') {
-      let ratio = 0;
-      if (val >= 7 && val <= 10) {
-        ratio = val >= 8 ? 1 : val / 8;
+    // 根据 healLevel 恢复精力
+    if (def.healLevel === 'big') {
+      if (def.id === 'sleep' && typeof val === 'number') {
+        let ratio = 0;
+        if (val >= 7 && val <= 10) {
+          ratio = val >= 8 ? 1 : val / 8;
+        }
+        d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + d.state.maxEnergy * currentConfig.bigHealRatio * ratio);
+      } else {
+        d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + d.state.maxEnergy * currentConfig.bigHealRatio);
       }
-      d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + d.state.maxEnergy * currentConfig.bigHealRatio * ratio);
-    } else if (key === 'exercise' && typeof val === 'number') {
-      const ratio = val >= 30 ? 1 : val / 30;
-      d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + currentConfig.midHeal * ratio);
-    } else if (key === 'meals') {
-      d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + currentConfig.midHeal);
-    } else if (key === 'water' || key === 'stretch' || key === 'nap' || key === 'meditate' || key === 'poop') {
+    } else if (def.healLevel === 'mid') {
+      if (def.id === 'exercise' && typeof val === 'number') {
+        const ratio = val >= 30 ? 1 : val / 30;
+        d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + currentConfig.midHeal * ratio);
+      } else {
+        d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + currentConfig.midHeal);
+      }
+    } else if (def.healLevel === 'small') {
       d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + currentConfig.smallHeal);
     }
+    // healLevel === 'none' → 不恢复精力
 
     const energyDiff = d.state.energy - oldEnergy;
 
-    const actionMap: Record<string, number> = {
+    // 构建 actionId：内置任务用固定映射，自定义任务用 100+
+    const builtinMap: Record<string, number> = {
       sleep: 0, exercise: 1, meals: 2, water: 3, stretch: 4,
       nap: 5, meditate: 6, poop: 7
     };
-    const actionId = actionMap[key as string];
+    const allDefs = d.taskDefs || DEFAULT_TASK_DEFS;
+    const actionId = builtinMap[def.id] ?? (100 + allDefs.findIndex(d2 => d2.id === def.id));
+
     let numericVal = 1;
-    if (isCounterTask) numericVal = (d.tasks as any)[key];
+    if (isCounter) numericVal = d.tasks[def.id] as number;
     else if (typeof val === 'boolean') numericVal = val ? 1 : 0;
     else numericVal = Number(val);
 
     const logs = d.logs || [];
-    // 极致压缩：使用元组存储 [时间戳, 动作ID, 动作值, 精力变化]
     logs.unshift([Date.now(), actionId, numericVal, Number(energyDiff.toFixed(1))]);
     await chrome.storage.local.set({ tasks: d.tasks, state: d.state, logs });
     onDataChange();
   };
 
-  const renderCounterButton = (key: 'meals' | 'water' | 'stretch' | 'meditate', label: string, icon: React.ReactNode) => {
-    const count = (tasks[key] as number) || 0;
-    const isMax = count >= 3;
-    return (
-      <div className="flex flex-col h-full justify-end">
-        <button
-          className={`h-[26px] rounded flex items-center justify-center text-xs font-bold transition-colors ${isMax ? 'bg-emerald-500/20 text-emerald-700 cursor-not-allowed border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'}`}
-          disabled={isMax}
-          onClick={() => handleTaskSave(key, true)}
-        >
-          {isMax ? '✅ 已满 (3/3)' : <>{icon} {label} ({count}/3)</>}
-        </button>
-      </div>
-    );
-  };
+  const renderTask = (def: CustomTaskDef) => {
+    if (def.type === 'counter') {
+      const count = (tasks[def.id] as number) || 0;
+      const maxCount = def.maxCount || 3;
+      const isMax = count >= maxCount;
+      return (
+        <div key={def.id} className="flex flex-col h-full justify-end">
+          <button
+            className={`h-[26px] rounded flex items-center justify-center text-xs font-bold transition-colors ${isMax ? 'bg-emerald-500/20 text-emerald-700 cursor-not-allowed border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'}`}
+            disabled={isMax}
+            onClick={() => handleTaskSave(def, true)}
+          >
+            {isMax ? `✅ 已满 (${maxCount}/${maxCount})` : <><span className="mr-1">{def.icon}</span> {def.name} ({count}/{maxCount})</>}
+          </button>
+        </div>
+      );
+    }
 
-  const renderBooleanButton = (key: 'nap' | 'poop', label: string, icon: React.ReactNode) => {
-    const isDone = tasks[key] as boolean;
+    if (def.type === 'boolean') {
+      const isDone = !!tasks[def.id];
+      return (
+        <div key={def.id} className="flex flex-col h-full justify-end">
+          <button
+            className={`h-[26px] rounded flex items-center justify-center text-xs font-bold transition-colors ${isDone ? 'bg-emerald-500/20 text-emerald-700 cursor-not-allowed border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'}`}
+            disabled={isDone}
+            onClick={() => handleTaskSave(def, true)}
+          >
+            {isDone ? '✅ 已完成' : <><span className="mr-1">{def.icon}</span> {def.name}</>}
+          </button>
+        </div>
+      );
+    }
+
+    // number 类型
+    const isSubmitted = tasks[def.id] !== null && tasks[def.id] !== undefined;
+    const localVal = localInputs[def.id] || '';
     return (
-      <div className="flex flex-col h-full justify-end">
-        <button
-          className={`h-[26px] rounded flex items-center justify-center text-xs font-bold transition-colors ${isDone ? 'bg-emerald-500/20 text-emerald-700 cursor-not-allowed border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'}`}
-          disabled={isDone}
-          onClick={() => handleTaskSave(key, true)}
-        >
-          {isDone ? '✅ 已完成' : <>{icon} {label}</>}
-        </button>
+      <div key={def.id} className="flex flex-col text-xs">
+        <label className="mb-1 text-gray-600">{def.icon} {def.name}{def.unit ? `(${def.unit})` : ''}</label>
+        <input
+          type="number"
+          className="border border-gray-300 rounded p-1 text-xs outline-none focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500"
+          placeholder={def.placeholder || ''}
+          value={localVal}
+          disabled={!!isSubmitted}
+          onChange={(e) => setLocalInputs(prev => ({ ...prev, [def.id]: e.target.value }))}
+          onBlur={(e) => {
+            const v = parseFloat(e.target.value);
+            if (!isNaN(v)) handleTaskSave(def, v);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              const v = parseFloat(e.currentTarget.value);
+              if (!isNaN(v)) handleTaskSave(def, v);
+            }
+          }}
+        />
       </div>
     );
   };
@@ -185,58 +232,10 @@ export default function MainDashboard({ data, onOpenMenu, onDataChange }: Props)
         </div>
       </div>
 
-      {/* Tasks */}
+      {/* Tasks - 动态渲染 */}
       <div className="bg-white rounded-lg p-3 shadow-sm">
         <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col text-xs">
-            <label className="mb-1 text-gray-600">睡眠(h)</label>
-            <input
-              type="number"
-              className="border border-gray-300 rounded p-1 text-xs outline-none focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500"
-              placeholder="8"
-              value={localSleep}
-              disabled={tasks.sleep !== null}
-              onChange={(e) => setLocalSleep(e.target.value)}
-              onBlur={(e) => {
-                const val = parseFloat(e.target.value);
-                if (!isNaN(val)) handleTaskSave('sleep', val);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = parseFloat(e.currentTarget.value);
-                  if (!isNaN(val)) handleTaskSave('sleep', val);
-                }
-              }}
-            />
-          </div>
-          <div className="flex flex-col text-xs">
-            <label className="mb-1 text-gray-600">运动(min)</label>
-            <input
-              type="number"
-              className="border border-gray-300 rounded p-1 text-xs outline-none focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500"
-              placeholder="目标:30"
-              value={localExercise}
-              disabled={tasks.exercise !== null}
-              onChange={(e) => setLocalExercise(e.target.value)}
-              onBlur={(e) => {
-                const val = parseFloat(e.target.value);
-                if (!isNaN(val)) handleTaskSave('exercise', val);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = parseFloat(e.currentTarget.value);
-                  if (!isNaN(val)) handleTaskSave('exercise', val);
-                }
-              }}
-            />
-          </div>
-
-          {renderCounterButton('meals', '主食打卡', <Coffee size={14} className="mr-1 text-orange-400"/>)}
-          {renderCounterButton('water', '喝水打卡', <Droplet size={14} className="mr-1 text-emerald-400"/>)}
-          {renderCounterButton('stretch', '拉伸放松', <Activity size={14} className="mr-1 text-green-500"/>)}
-          {renderBooleanButton('nap', '午间小憩', <Moon size={14} className="mr-1 text-indigo-400"/>)}
-          {renderCounterButton('meditate', '正念冥想', <Brain size={14} className="mr-1 text-purple-400"/>)}
-          {renderBooleanButton('poop', '肠道管理', <Wind size={14} className="mr-1 text-amber-600"/>)}
+          {taskDefs.map(def => renderTask(def))}
         </div>
       </div>
     </div>

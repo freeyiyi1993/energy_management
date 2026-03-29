@@ -1,4 +1,4 @@
-import { type Config, type AppState, type Tasks, type StorageData } from '../types';
+import { type Config, type AppState, type Tasks, type StorageData, type CustomTaskDef, DEFAULT_TASK_DEFS } from '../types';
 
 const DEFAULT_CONFIG: Config = {
   maxEnergy: 65,
@@ -31,6 +31,17 @@ function getLogical8AM() {
   return now.getTime();
 }
 
+function buildEmptyTasks(taskDefs: CustomTaskDef[]): Tasks {
+  const tasks: Tasks = {};
+  for (const def of taskDefs) {
+    if (!def.enabled) continue;
+    if (def.type === 'counter') tasks[def.id] = 0;
+    else if (def.type === 'boolean') tasks[def.id] = false;
+    else tasks[def.id] = null;
+  }
+  return tasks;
+}
+
 async function initData() {
   const data = (await chrome.storage.local.get(null)) as StorageData;
   const todayStr = getLogicalDate();
@@ -38,6 +49,11 @@ async function initData() {
   const config = data.config || DEFAULT_CONFIG;
   if (!data.config) {
     await chrome.storage.local.set({ config });
+  }
+
+  const taskDefs = data.taskDefs || DEFAULT_TASK_DEFS;
+  if (!data.taskDefs) {
+    await chrome.storage.local.set({ taskDefs });
   }
 
   if (!data.state) {
@@ -66,7 +82,7 @@ async function initData() {
         energyConsumed: 0,
         pomodoro: { running: false, timeLeft: 25 * 60, count: 0, perfectCount: 0, consecutiveCount: 0 }
       },
-      tasks: { sleep: null, exercise: null, meals: 0, water: 0, stretch: 0, nap: false, meditate: 0, poop: false },
+      tasks: buildEmptyTasks(taskDefs),
       stats: [],
       logs: []
     });
@@ -77,17 +93,31 @@ async function initData() {
 async function handleDayRollover(data: StorageData, todayStr: string) {
   const { state, tasks, stats } = data as { state: AppState, tasks: Tasks, stats: any[] };
   const config = data.config || DEFAULT_CONFIG;
+  const taskDefs = data.taskDefs || DEFAULT_TASK_DEFS;
   let maxEnergyDelta = 0;
 
-  const isHealthyTasksDone = tasks.sleep && tasks.sleep >= 8 && tasks.meals >= 3 && tasks.exercise && tasks.exercise >= 30 && tasks.water >= 3 && tasks.stretch >= 3 && tasks.poop;
+  // 使用动态任务检查是否完成健康任务
+  const sleepVal = tasks['sleep'] as number | null;
+  const mealsVal = tasks['meals'] as number || 0;
+  const exerciseVal = tasks['exercise'] as number | null;
+  const waterVal = tasks['water'] as number || 0;
+  const stretchVal = tasks['stretch'] as number || 0;
+  const poopVal = tasks['poop'] as boolean || false;
+
+  const isHealthyTasksDone = sleepVal && sleepVal >= 8 && mealsVal >= 3 && exerciseVal && exerciseVal >= 30 && waterVal >= 3 && stretchVal >= 3 && poopVal;
 
   const pomoCount = state.pomodoro.count;
   const perfectCount = state.pomodoro.perfectCount;
 
   // 检查是否没有任何输入（节假日/空闲模式）
-  const isNoInput = !tasks.sleep && !tasks.exercise && tasks.meals === 0 && tasks.water === 0 && tasks.stretch === 0 && !tasks.nap && tasks.meditate === 0 && !tasks.poop && pomoCount === 0;
+  const enabledDefs = taskDefs.filter(d => d.enabled);
+  const isNoInput = enabledDefs.every(def => {
+    const v = tasks[def.id];
+    if (def.type === 'counter') return (v as number || 0) === 0;
+    if (def.type === 'boolean') return !v;
+    return v === null || v === undefined;
+  }) && pomoCount === 0;
 
-  // 如果是没有任何输入的节假日模式，直接跳过所有惩罚判断，也不计入历史统计
   if (isNoInput) {
     state.logicalDate = todayStr;
     state.energy = state.maxEnergy * 0.8;
@@ -98,9 +128,7 @@ async function handleDayRollover(data: StorageData, todayStr: string) {
     state.pomodoro.perfectCount = 0;
     state.pomodoro.consecutiveCount = 0;
 
-    const newTasks: Tasks = { sleep: null, exercise: null, meals: 0, water: 0, stretch: 0, nap: false, meditate: 0, poop: false };
-
-    await chrome.storage.local.set({ state, tasks: newTasks });
+    await chrome.storage.local.set({ state, tasks: buildEmptyTasks(taskDefs) });
     return;
   }
 
@@ -108,7 +136,7 @@ async function handleDayRollover(data: StorageData, todayStr: string) {
     maxEnergyDelta += config.perfectDayBonus;
   }
 
-  if (perfectCount === 0 && (!tasks.exercise || tasks.exercise < 30) && (!tasks.sleep || tasks.sleep < 6)) {
+  if (perfectCount === 0 && (!exerciseVal || exerciseVal < 30) && (!sleepVal || sleepVal < 6)) {
     maxEnergyDelta -= config.badDayPenalty;
   }
 
@@ -133,9 +161,7 @@ async function handleDayRollover(data: StorageData, todayStr: string) {
   state.pomodoro.perfectCount = 0;
   state.pomodoro.consecutiveCount = 0;
 
-  const newTasks: Tasks = { sleep: null, exercise: null, meals: 0, water: 0, stretch: 0, nap: false, meditate: 0, poop: false };
-
-  await chrome.storage.local.set({ state, tasks: newTasks, stats });
+  await chrome.storage.local.set({ state, tasks: buildEmptyTasks(taskDefs), stats });
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -162,7 +188,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     let decayRate = config.decayRate / 60;
     const currentHour = new Date().getHours();
 
-    const missedMeals = currentHour >= 19 && tasks.meals < 2;
+    const mealsCount = tasks['meals'] as number || 0;
+    const missedMeals = currentHour >= 19 && mealsCount < 2;
 
     if (missedMeals) {
       decayRate *= config.penaltyMultiplier;
@@ -190,7 +217,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         chrome.tabs.create({ url: chrome.runtime.getURL(`src/pages/finish/finish.html?type=pomodoro&forcedBreak=${isForcedBreak}`) });
 
         if (isForcedBreak) {
-          state.pomodoro.consecutiveCount = 0; // 重置连续计数
+          state.pomodoro.consecutiveCount = 0;
         }
       }
     }

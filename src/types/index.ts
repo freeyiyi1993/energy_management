@@ -28,15 +28,9 @@ export interface AppState {
   pomodoro: PomodoroState;
 }
 
+// Tasks 使用动态 key 以支持自定义打卡事项
 export interface Tasks {
-  sleep: number | null;
-  exercise: number | null;
-  meals: number;
-  water: number;
-  stretch: number;
-  nap: boolean;
-  meditate: number;
-  poop: boolean;
+  [key: string]: number | boolean | null;
 }
 
 export interface LogEntry {
