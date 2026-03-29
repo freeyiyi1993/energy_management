@@ -1,43 +1,52 @@
-# QA Report - 目录重构
+# QA 完成报告
 
-## 任务 1：消除 conf/ 目录
+## 修改的文件
+- `eslint.config.js`: 添加 `dist-web` 到 globalIgnores，防止 lint 扫描构建产物
+- `tests/ui_test.js`: 修复 popup URL 路径 `src/pages/popup/` → `extension/pages/popup/`
+- `tests/utils.test.ts`: 扩展 parseTimeStr 测试（3→7 case），覆盖空字符串、全部 24 小时
 
-### 移动的文件
+## 新增的文件
+- `tests/types.test.ts`: DEFAULT_TASK_DEFS 结构验证测试（12 case），覆盖：
+  - 任务数量、ID 顺序、唯一性
+  - builtin/enabled 默认值
+  - countsForPerfectDay 标记正确性
+  - 各任务类型和恢复等级
+  - counter 类型有 maxCount、number 类型有 unit/placeholder
+  - 每个任务有非空 icon 和 name
 
-| 原路径 | 新路径 | 路径调整 |
-|--------|--------|----------|
-| conf/vite.extension.config.ts | extension/vite.config.ts | publicDir、postcss、outDir、rollupOptions.input 改为相对于 extension/ |
-| conf/tsconfig.json | tsconfig.json | references 路径不变（已在同级） |
-| conf/tsconfig.app.json | tsconfig.app.json | tsBuildInfoFile 从 `../node_modules` 改为 `./node_modules`；include 从 `../extension` 等改为 `extension` 等 |
-| conf/tsconfig.node.json | tsconfig.node.json | include 从 `vite.config.ts` 改为 `extension/vite.config.ts, web/vite.config.ts, vitest.config.ts` |
-| conf/tailwind.config.js | tailwind.config.js | content 路径不变（已是 `./extension/` 等相对根目录路径） |
-| conf/postcss.config.js | postcss.config.js | tailwindcss config 从 `conf/tailwind.config.js` 改为 `tailwind.config.js` |
-| conf/eslint.config.js | eslint.config.js | 无路径变更 |
-| conf/vitest.config.ts | vitest.config.ts | 移除 `__dirname` 手动计算，移除 `root` 配置（默认即为项目根目录） |
+## 依赖变更
+- 是否修改了接口/类型: 否
+- 影响范围: 无，纯测试和配置变更
 
-### 更新的引用文件
+## 测试状态
+- 单元测试: 通过 (2 files, 19 tests, 0 failures)
+- 构建: TypeScript 编译报错 2 个（均在 `web/WebApp.tsx`，由其他 Agent 的未提交改动引起，非 QA 变更导致）
 
-- **package.json** - 5 处脚本路径更新：
-  - `build`: `conf/tsconfig.app.json` -> `tsconfig.app.json`, `conf/vite.extension.config.ts` -> `extension/vite.config.ts`
-  - `build:web`: `conf/tsconfig.app.json` -> `tsconfig.app.json`
-  - `lint`: `conf/eslint.config.js` -> `eslint.config.js`
-  - `test`: `conf/vitest.config.ts` -> `vitest.config.ts`
-- **web/vite.config.ts** - postcss 路径从 `../conf/postcss.config.js` 改为 `../postcss.config.js`
+## 发现的问题（需其他 Agent 修复）
 
-### 删除
+### P1: TypeScript 编译错误（web-app Agent）
+- `web/WebApp.tsx:19` - `showLowEnergyOverlay` declared but never read
+- `web/WebApp.tsx:63` - `handleDismissLowEnergy` declared but never read
+- **影响**: `npm run build` 和 `npm run build:web` 均失败
 
-- `conf/` 目录整体删除
+### P2: ESLint 错误 28 个（各 Agent）
+- `@typescript-eslint/no-explicit-any`: 22 处（分布在 extension/storage.ts, web/storage.ts, shared/storage.ts, shared/types/index.ts, SyncPanel.tsx, AuthPanel.tsx, StatsPage.tsx, background/index.ts, web-ticker.ts）
+- `prefer-const`: 1 处（extension/pages/finish/FinishApp.tsx:26）
+- `react-hooks/exhaustive-deps`: 2 处 warning（MainDashboard.tsx, StatsPage.tsx）
+- `react-refresh`: 1 处（MainDashboard.tsx impure function during render）
+- `react-refresh`: 1 处（StatsPage.tsx cascading setState in effect）
+- **建议**: 各 Agent 在自己的文件边界内修复
 
-## 任务 2：创建 shared/public/
+### P3: 构建产物体积警告
+- `dist/assets/storage-*.js`: 530 KB（Firebase SDK 占大头）
+- `dist-web/assets/web-*.js`: 734 KB
+- **建议**: 后续考虑 dynamic import 拆分 Firebase
 
-- 创建了 `shared/public/` 目录
-- `extension/public/` 中仅有 `manifest.json`（Chrome 扩展专属配置），无共享静态资源需要移动
-- shared/public/ 作为空目录就绪，待后续添加共享图标等资源
+### P4: 核心业务逻辑无单测覆盖
+- `buildEmptyTasks()`, `handleDayRollover()`, `getLogicalDate()` 等函数未导出，无法从外部测试
+- `logsToFirestore()` / `logsFromFirestore()` 是 private 函数
+- **建议**: backend Agent 将纯函数提取到 shared/utils/ 并导出，QA 再补充测试
 
-## 验证结果
-
-| 命令 | 结果 |
-|------|------|
-| `npm run build` | PASS - 扩展构建成功，输出到 dist/ |
-| `npm run build:web` | PASS - Web 构建成功，输出到 dist-web/ |
-| `npm run test` | PASS - 1 test file, 3 tests passed |
+## 遗留问题
+- 核心业务逻辑（精力衰减、日期翻转、完美一天判定）因函数未导出，当前无法单测。需 backend Agent 配合重构后再补测试
+- UI 自动化测试 (`test:ui`) 需要先构建成功才能运行，当前因 TS 编译错误被阻塞
