@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTimeStr } from '../src/utils/time';
+import { parseTimeStr } from '../shared/utils/time';
 
 describe('parseTimeStr', () => {
   it('should handle null correctly', () => {

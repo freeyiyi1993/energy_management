@@ -11,6 +11,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     root: path.resolve(__dirname, '../'),
-    include: ['tests/**/*.test.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+    include: ['tests/**/*.test.{ts,tsx}', 'shared/**/*.test.{ts,tsx}', 'extension/**/*.test.{ts,tsx}', 'web/**/*.test.{ts,tsx}'],
   }
 })

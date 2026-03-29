@@ -4,10 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --config conf/vite.config.ts",
     "dev:web": "vite --config web/vite.config.ts",
-    "build": "tsc -b conf/tsconfig.app.json && vite build --config conf/vite.config.ts",
-    "build:ext": "tsc -b conf/tsconfig.app.json && vite build --config conf/vite.extension.config.ts",
+    "build": "tsc -b conf/tsconfig.app.json && vite build --config conf/vite.extension.config.ts",
     "build:web": "tsc -b conf/tsconfig.app.json && vite build --config web/vite.config.ts",
     "lint": "eslint -c conf/eslint.config.js .",
     "preview": "vite preview",

@@ -41,7 +41,6 @@ web/                          # Web 独立版专属代码
 ├── vite.config.ts            # Web 版 Vite 配置
 └── components/AuthPanel.tsx  # 登录/同步 UI
 
-src/                          # [旧] 原始代码 (待废弃，新代码请写入上面三个目录)
 conf/                         # Build configs (vite, tsconfig, tailwind, vitest, postcss, eslint)
 tests/                        # Unit tests + UI automation tests
 dist/                         # Chrome 扩展构建产物
@@ -51,10 +50,9 @@ dist-web/                     # Web 版构建产物
 ## Common Commands
 
 ```bash
-npm run build             # [旧] 构建 Chrome 扩展 (从 src/) 到 dist/
-npm run build:ext         # [新] 构建 Chrome 扩展 (从 extension/) 到 dist/
+npm run build             # 构建 Chrome 扩展到 dist/
 npm run build:web         # 构建 Web 版到 dist-web/
-npm run dev:web           # Web 版开发服务器
+npm run dev:web           # Web 版开发服务器 (port 3000)
 npm run test              # 单元测试 (Vitest)
 npm run test:ui           # UI 测试 (Puppeteer, 需先 build)
 npm run lint              # ESLint
@@ -92,7 +90,7 @@ npm run lint              # ESLint
 - **决策**: 将代码从 `src/` 拆分为 `shared/`（共享类型、Firebase、UI 组件）、`extension/`（Chrome 扩展入口 + chrome.storage）、`web/`（Web 入口 + localStorage + ticker）
 - **原因**: 职责分离，`StorageInterface` 依赖注入取代运行时环境检测，各端独立构建
 - **关键设计**: `MainDashboard` 和 `SettingsPage` 通过 props 接收 `storage: StorageInterface`
-- **状态**: 已实现，`src/` 待废弃
+- **状态**: 已完成
 
 ## Current Status
 - [x] 插件基础功能 (MVP)
@@ -101,7 +99,7 @@ npm run lint              # ESLint
 - [x] Firebase 配置 + 存储抽象层 (storage.ts)
 - [x] 三目录重构 (shared/ + extension/ + web/) + Vite 双构建配置
 - [x] 登录/同步 UI (Firebase Auth + Firestore)
-- [ ] 废弃 src/ 目录，全面切换到新结构
+- [x] 废弃 src/ 目录，全面切换到新结构
 - [ ] 更新 README
 
 ## 重启后的标准起手式
