@@ -198,6 +198,9 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
             精力值:{Math.floor(state.energy)} / {state.maxEnergy}
           </span>
         </div>
+        <div className="text-[11px] text-gray-400 text-right mt-1">
+          已消耗: {(state.energyConsumed || 0).toFixed(1)}
+        </div>
       </div>
 
       {/* Pomodoro */}

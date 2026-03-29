@@ -66,7 +66,13 @@ export default function RulesPage({ data, onBack }: { data: StorageData; onBack:
               <span>基础自然流失</span> <span className="text-red-500 font-bold">- {config.decayRate} 点/小时</span>
             </li>
             <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
-              <span>19:00 后未吃 2 餐</span> <span className="text-red-500 font-bold">流失率 x {config.penaltyMultiplier}</span>
+              <span>10:00 后未吃 1 餐</span> <span className="text-red-500 font-bold">流失率 x {config.penaltyMultiplier}</span>
+            </li>
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>14:00 后未吃 2 餐</span> <span className="text-red-500 font-bold">流失率 x {config.penaltyMultiplier}</span>
+            </li>
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>19:00 后未吃 3 餐</span> <span className="text-red-500 font-bold">流失率 x {config.penaltyMultiplier}</span>
             </li>
           </ul>
         </div>
@@ -83,8 +89,37 @@ export default function RulesPage({ data, onBack }: { data: StorageData; onBack:
             <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
               <span>糟糕一天</span> <span className="text-red-500 font-bold">精力上限 - {config.badDayPenalty}</span>
             </li>
-            <li className="py-1 text-[10px] text-gray-400">
+            <li className="py-1 border-b border-dashed border-gray-200 text-[10px] text-gray-400">
               条件：0 个完美番茄 + 无运动(&lt;30m) + 少睡(&lt;6h)
+            </li>
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>节假日豁免</span> <span className="text-gray-400">不扣精力上限</span>
+            </li>
+            <li className="py-1 text-[10px] text-gray-400">
+              当天无任何日志记录 → 默认节假日模式，次日不扣精力上限
+            </li>
+          </ul>
+        </div>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <div className="font-bold text-[13px] mb-2 flex items-center gap-1">☁️ 同步规则</div>
+          <ul className="list-none p-0 m-0 text-xs">
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>登录成功后</span> <span className="text-blue-500 font-bold">自动拉取云端数据</span>
+            </li>
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>每 60 秒</span> <span className="text-blue-500 font-bold">自动推送到云端</span>
+            </li>
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>登出前</span> <span className="text-blue-500 font-bold">自动保存到云端</span>
+            </li>
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>手动拉取</span> <span className="text-gray-500">比较时间戳，取更新方</span>
+            </li>
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>强制拉取</span> <span className="text-red-500 font-bold">云端直接覆盖本地</span>
+            </li>
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>手动推送</span> <span className="text-gray-500">本地覆盖云端</span>
             </li>
           </ul>
         </div>
