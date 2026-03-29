@@ -58,10 +58,40 @@ export type AppLogEntry = {
   txt?: string;  // 兼容中间版本数据
 } | CompactLog;
 
+// 自定义打卡事项定义
+export type TaskType = 'counter' | 'boolean' | 'number';
+export type HealLevel = 'none' | 'small' | 'mid' | 'big';
+
+export interface CustomTaskDef {
+  id: string;           // 唯一标识，如 'sleep', 'exercise', 'custom_1'
+  name: string;         // 显示名称，如 '睡眠', '臀桥'
+  icon: string;         // emoji 图标，如 '💤', '🏋️'
+  type: TaskType;       // counter: 可累加(如主食0→3), boolean: 开关, number: 数值输入
+  healLevel: HealLevel; // none: 不恢复, small/mid/big 对应 config 中的恢复量
+  maxCount?: number;    // counter 类型的上限，默认 3
+  unit?: string;        // number 类型的单位，如 'h', 'min'
+  placeholder?: string; // number 类型的输入提示
+  builtin?: boolean;    // 是否为内置任务（内置任务不可删除，只能禁用）
+  enabled: boolean;     // 是否启用
+}
+
+// 内置默认任务列表
+export const DEFAULT_TASK_DEFS: CustomTaskDef[] = [
+  { id: 'sleep',    name: '睡眠',     icon: '💤', type: 'number',  healLevel: 'big',   unit: 'h',   placeholder: '8',     builtin: true, enabled: true },
+  { id: 'exercise', name: '运动',     icon: '🏃', type: 'number',  healLevel: 'mid',   unit: 'min', placeholder: '目标:30', builtin: true, enabled: true },
+  { id: 'meals',    name: '主食打卡', icon: '🍚', type: 'counter', healLevel: 'mid',   maxCount: 3, builtin: true, enabled: true },
+  { id: 'water',    name: '喝水打卡', icon: '💧', type: 'counter', healLevel: 'small', maxCount: 3, builtin: true, enabled: true },
+  { id: 'stretch',  name: '拉伸放松', icon: '🧘', type: 'counter', healLevel: 'small', maxCount: 3, builtin: true, enabled: true },
+  { id: 'nap',      name: '午间小憩', icon: '🌙', type: 'boolean', healLevel: 'small', builtin: true, enabled: true },
+  { id: 'meditate', name: '正念冥想', icon: '🧠', type: 'counter', healLevel: 'small', maxCount: 3, builtin: true, enabled: true },
+  { id: 'poop',     name: '肠道管理', icon: '💨', type: 'boolean', healLevel: 'small', builtin: true, enabled: true },
+];
+
 export interface StorageData {
   config?: Config;
   state?: AppState;
   tasks?: Tasks;
+  taskDefs?: CustomTaskDef[];
   stats?: any[];
   logs?: AppLogEntry[];
 }
