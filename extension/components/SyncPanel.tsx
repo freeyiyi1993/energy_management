@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { onAuthStateChanged, signOut, signInWithCredential, GoogleAuthProvider, type User } from 'firebase/auth';
+import { onAuthStateChanged, signOut, signInWithCredential, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, type User } from 'firebase/auth';
 import { auth } from '../../shared/firebase';
 import { syncToCloud, pullAndMerge, forcePull } from '../storage';
-import { Cloud, LogIn, LogOut, RefreshCw, Download } from 'lucide-react';
+import { Cloud, LogIn, LogOut, RefreshCw, Download, Mail, ArrowLeft } from 'lucide-react';
 
 interface Props {
   onSynced: () => void;
@@ -13,6 +13,10 @@ export default function SyncPanel({ onSynced }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [message, setMessage] = useState('');
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const pushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const initialPullDone = useRef(false);
 
@@ -86,7 +90,7 @@ export default function SyncPanel({ onSynced }: Props) {
     };
   }, [user, handlePush]);
 
-  const handleLogin = async () => {
+  const handleGoogleLogin = async () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) {
       showMessage('未配置 VITE_GOOGLE_CLIENT_ID');
@@ -95,7 +99,6 @@ export default function SyncPanel({ onSynced }: Props) {
 
     setLoggingIn(true);
     try {
-      // 通过 background service worker 执行 OAuth，避免 popup 关闭导致流程中断
       const response = await chrome.runtime.sendMessage({ type: 'GOOGLE_LOGIN', clientId });
       if (response?.error) throw new Error(response.error);
       if (!response?.accessToken) throw new Error('未获取到 access_token');
@@ -116,6 +119,34 @@ export default function SyncPanel({ onSynced }: Props) {
     }
   };
 
+  const handleEmailLogin = async () => {
+    if (!email || !password) {
+      showMessage('请输入邮箱和密码');
+      return;
+    }
+    setLoggingIn(true);
+    try {
+      if (isRegister) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+      setShowEmailForm(false);
+      setEmail('');
+      setPassword('');
+    } catch (err: any) {
+      const code = err.code as string;
+      if (code === 'auth/user-not-found') showMessage('账号不存在，请先注册');
+      else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') showMessage('密码错误');
+      else if (code === 'auth/email-already-in-use') showMessage('邮箱已注册，请直接登录');
+      else if (code === 'auth/weak-password') showMessage('密码至少 6 位');
+      else if (code === 'auth/invalid-email') showMessage('邮箱格式不正确');
+      else showMessage(`登录失败: ${err.message}`);
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
   const handleLogout = async () => {
     if (user) await handlePush(user.uid, true);
     await signOut(auth);
@@ -130,13 +161,63 @@ export default function SyncPanel({ onSynced }: Props) {
       )}
 
       {!user ? (
-        <button
-          className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors disabled:opacity-50"
-          onClick={handleLogin}
-          disabled={loggingIn}
-        >
-          <LogIn size={14} /> {loggingIn ? '登录中...' : 'Google 登录 (开启云同步)'}
-        </button>
+        showEmailForm ? (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1 mb-1">
+              <button
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => { setShowEmailForm(false); setMessage(''); }}
+              >
+                <ArrowLeft size={14} />
+              </button>
+              <span className="text-xs font-bold text-gray-700">{isRegister ? '注册' : '邮箱登录'}</span>
+            </div>
+            <input
+              type="email"
+              placeholder="邮箱"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+            />
+            <input
+              type="password"
+              placeholder="密码"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleEmailLogin()}
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+            />
+            <button
+              className="w-full bg-blue-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors disabled:opacity-50"
+              onClick={handleEmailLogin}
+              disabled={loggingIn}
+            >
+              {loggingIn ? '处理中...' : isRegister ? '注册' : '登录'}
+            </button>
+            <button
+              className="w-full text-[10px] text-gray-500 hover:text-blue-500 transition-colors"
+              onClick={() => setIsRegister(!isRegister)}
+            >
+              {isRegister ? '已有账号？去登录' : '没有账号？去注册'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <button
+              className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors disabled:opacity-50"
+              onClick={handleGoogleLogin}
+              disabled={loggingIn}
+            >
+              <LogIn size={14} /> {loggingIn ? '登录中...' : 'Google 登录'}
+            </button>
+            <button
+              className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
+              onClick={() => setShowEmailForm(true)}
+            >
+              <Mail size={14} /> 邮箱登录
+            </button>
+          </div>
+        )
       ) : (
         <div className="flex items-center gap-1.5">
           <Cloud size={12} className="text-emerald-500 shrink-0" />
