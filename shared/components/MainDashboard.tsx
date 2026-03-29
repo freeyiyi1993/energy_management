@@ -9,9 +9,10 @@ interface Props {
   storage: StorageInterface;
   onOpenMenu: () => void;
   onDataChange: () => void;
+  flat?: boolean;
 }
 
-export default function MainDashboard({ data, storage, onOpenMenu, onDataChange }: Props) {
+export default function MainDashboard({ data, storage, onOpenMenu, onDataChange, flat }: Props) {
   const { state, tasks, config } = data;
   const taskDefs = (data.taskDefs || DEFAULT_TASK_DEFS).filter(d => d.enabled);
 
@@ -30,6 +31,8 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange 
 
   if (!state || !tasks || !config) return null;
 
+  const card = flat ? 'mb-3' : 'bg-white rounded-lg p-3 mb-3 shadow-sm';
+  const cardLast = flat ? '' : 'bg-white rounded-lg p-3 shadow-sm';
   const energyPercent = Math.min(100, Math.max(0, (state.energy / state.maxEnergy) * 100));
   let barColor = '#10b981';
   if (state.energy < 20) barColor = '#ef4444';
@@ -73,16 +76,15 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange 
     }
 
     // 根据 healLevel 恢复精力
-    if (def.healLevel === 'big') {
-      if (def.id === 'sleep' && typeof val === 'number') {
-        let ratio = 0;
-        if (val >= 7 && val <= 10) {
-          ratio = val >= 8 ? 1 : val / 8;
-        }
-        d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + d.state.maxEnergy * currentConfig.bigHealRatio * ratio);
-      } else {
-        d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + d.state.maxEnergy * currentConfig.bigHealRatio);
+    if (def.id === 'sleep' && typeof val === 'number') {
+      // 睡眠恢复规则：8h 标准恢复到上限，<8h 等比扣除上限，>8h 无额外奖励
+      const hours = Math.min(val, 8);
+      if (hours < 8 && hours > 0) {
+        d.state.maxEnergy = Math.round(d.state.maxEnergy * hours / 8);
       }
+      d.state.energy = d.state.maxEnergy;
+    } else if (def.healLevel === 'big') {
+      d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + d.state.maxEnergy * currentConfig.bigHealRatio);
     } else if (def.healLevel === 'mid') {
       if (def.id === 'exercise' && typeof val === 'number') {
         const ratio = val >= 30 ? 1 : val / 30;
@@ -189,7 +191,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange 
       </div>
 
       {/* Energy Bar */}
-      <div className="bg-white rounded-lg p-3 mb-3 shadow-sm">
+      <div className={card}>
         <div className="w-full h-6 bg-gray-200 rounded-full overflow-hidden relative flex items-center justify-center">
           <div className="absolute left-0 top-0 h-full transition-all duration-300 z-0" style={{ width: `${energyPercent}%`, backgroundColor: barColor }} />
           <span className="relative z-10 text-xs font-bold text-white drop-shadow-md">
@@ -199,7 +201,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange 
       </div>
 
       {/* Pomodoro */}
-      <div className="bg-white rounded-lg p-3 mb-3 shadow-sm">
+      <div className={card}>
         <div className="relative w-[140px] mx-auto">
           <div
             className="absolute -top-1 -right-1 w-7 h-7 flex items-center justify-center bg-gray-100 rounded-full cursor-pointer z-20 opacity-60 hover:opacity-100 hover:bg-gray-200 hover:rotate-15 transition-all shadow-sm text-sm"
@@ -235,7 +237,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange 
       </div>
 
       {/* Tasks - 动态渲染 */}
-      <div className="bg-white rounded-lg p-3 shadow-sm">
+      <div className={cardLast}>
         <div className="grid grid-cols-2 gap-2">
           {taskDefs.map(def => renderTask(def))}
         </div>
