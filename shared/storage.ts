@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { type StorageData } from './types';
+import { type StorageData, type AppLogEntry } from './types';
 
 // 统一存储接口：各平台（Chrome 扩展 / Web）各自实现
 export interface StorageInterface {
@@ -48,8 +48,48 @@ export async function syncFromCloud(uid: string): Promise<StorageData | null> {
   return cloudData;
 }
 
-/** 智能拉取：比较时间戳，取更新的 */
-export async function pullAndMerge(storage: StorageInterface, uid: string): Promise<'cloud' | 'local' | 'empty'> {
+// --- 日志合并工具 ---
+
+/** 从任意格式的日志条目中提取 timestamp */
+function getLogTimestamp(entry: AppLogEntry): number {
+  if (Array.isArray(entry)) return entry[0]; // CompactLog
+  if (entry.t) return entry.t;               // 中间版本
+  if (entry.time) return new Date(entry.time).getTime(); // 旧版本
+  return 0;
+}
+
+/** 从任意格式的日志条目中提取 action type */
+function getLogAction(entry: AppLogEntry): number | string {
+  if (Array.isArray(entry)) return entry[1]; // CompactLog
+  if (entry.text) return entry.text;         // 旧版本
+  if (entry.txt) return entry.txt;           // 中间版本
+  return '';
+}
+
+/** 生成去重 key: timestamp + action */
+function logDedupeKey(entry: AppLogEntry): string {
+  return `${getLogTimestamp(entry)}|${getLogAction(entry)}`;
+}
+
+/** 合并两端日志，按 timestamp 去重并排序 */
+export function mergeLogs(localLogs: AppLogEntry[], cloudLogs: AppLogEntry[]): AppLogEntry[] {
+  const seen = new Set<string>();
+  const merged: AppLogEntry[] = [];
+
+  for (const entry of [...localLogs, ...cloudLogs]) {
+    const key = logDedupeKey(entry);
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(entry);
+    }
+  }
+
+  merged.sort((a, b) => getLogTimestamp(a) - getLogTimestamp(b));
+  return merged;
+}
+
+/** 智能拉取：合并日志，状态取更新的一方 */
+export async function pullAndMerge(storage: StorageInterface, uid: string): Promise<'cloud' | 'local' | 'merged' | 'empty'> {
   const cloudData = await syncFromCloud(uid);
   if (!cloudData) return 'empty';
 
@@ -57,9 +97,21 @@ export async function pullAndMerge(storage: StorageInterface, uid: string): Prom
   const cloudTime = cloudData.state?.lastUpdateTime || 0;
   const localTime = localData.state?.lastUpdateTime || 0;
 
+  const localLogs = localData.logs || [];
+  const cloudLogs = cloudData.logs || [];
+
+  // 合并日志
+  const mergedLogs = mergeLogs(localLogs, cloudLogs);
+
+  // 状态取更新的一方，但日志始终合并
   if (cloudTime > localTime) {
-    await storage.set(cloudData);
+    await storage.set({ ...cloudData, logs: mergedLogs });
     return 'cloud';
+  }
+  // 本地更新或相同：保留本地状态，但补入云端日志
+  if (mergedLogs.length > localLogs.length) {
+    await storage.set({ ...localData, logs: mergedLogs });
+    return 'merged';
   }
   return 'local';
 }

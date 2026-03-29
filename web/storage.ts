@@ -48,7 +48,7 @@ export async function syncToCloud(uid: string): Promise<void> {
   await sharedSyncToCloud(storage, uid);
 }
 
-export async function pullAndMerge(uid: string): Promise<'cloud' | 'local' | 'empty'> {
+export async function pullAndMerge(uid: string): Promise<'cloud' | 'local' | 'merged' | 'empty'> {
   return sharedPullAndMerge(storage, uid);
 }
 

@@ -26,11 +26,12 @@ export default function SyncPanel({ onSynced }: Props) {
     try {
       const result = await pullAndMerge(uid);
       if (!silent) {
-        if (result === 'cloud') showMessage('已从云端拉取最新数据');
+        if (result === 'cloud') showMessage('已从云端拉取最新数据（日志已合并）');
+        else if (result === 'merged') showMessage('已合并云端日志');
         else if (result === 'local') showMessage('本地数据更新，无需拉取');
         else showMessage('云端无数据');
       }
-      if (result === 'cloud') onSynced();
+      if (result === 'cloud' || result === 'merged') onSynced();
     } catch (err: any) {
       if (!silent) showMessage(`同步失败: ${err.message}`);
     }
