@@ -129,7 +129,9 @@ export default function WebApp() {
           </div>
 
           {/* 底部同步面板 */}
-          <AuthPanel onSynced={fetchData} />
+          <div className="mt-3">
+            <AuthPanel onSynced={fetchData} />
+          </div>
         </div>
       </div>
 
