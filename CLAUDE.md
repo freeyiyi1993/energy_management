@@ -107,6 +107,13 @@ npm run lint              # ESLint
 ### ADR-007: 自动云同步
 - **决策**: 登录后自动拉取云端数据，每 60 秒自动推送，登出前自动保存
 - **原因**: 减少手动操作，保留手动拉取/推送按钮作为兜底
+- **同步策略**: 拉取=时间戳比较取新，强制拉取=云端覆盖本地，推送=本地覆盖云端
+- **状态**: 已实现
+
+### ADR-008: Chrome 扩展登录方案
+- **决策**: 在新 tab 中打开独立登录页（auth page），使用标准 `signInWithPopup`
+- **原因**: popup 中无法直接 `signInWithPopup`（弹窗导致 popup 关闭）；不依赖 `chrome.identity` API 和 OAuth Client ID
+- **原理**: 扩展页面和 popup 共享 `chrome-extension://ID/` origin，Firebase Auth 通过 IndexedDB 自动共享登录状态
 - **状态**: 已实现
 
 ## Current Status
@@ -120,6 +127,7 @@ npm run lint              # ESLint
 - [x] 睡眠恢复新规则 + 每日 100% 恢复
 - [x] countsForPerfectDay 完美一天动态判断
 - [x] Web 去卡片样式 + 自动云同步
+- [x] Chrome 扩展登录 + 云同步 (auth tab + SyncPanel)
 - [ ] 更新 README
 
 ## 重启后的标准起手式
@@ -131,3 +139,8 @@ npm run lint              # ESLint
 - 完成了一个功能模块
 - 发现了重要的技术约束
 - 讨论出了待解决的问题
+
+# 每次对话开头
+当前任务：xxx
+完成标准：xxx
+期间不接受新任务，除非我说"停"
