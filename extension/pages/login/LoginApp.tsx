@@ -32,6 +32,7 @@ export default function LoginApp() {
 
     try {
       const redirectUrl = chrome.identity.getRedirectURL();
+      console.log('[Energy Extension] OAuth redirect URL (add this to Google Cloud Console):', redirectUrl);
       const scopes = encodeURIComponent('openid email profile');
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(redirectUrl)}&scope=${scopes}`;
 
@@ -53,7 +54,14 @@ export default function LoginApp() {
       setTimeout(() => window.close(), 1500);
     } catch (err: any) {
       if (err.message !== 'The user did not approve access.') {
-        setError(`登录失败: ${err.message}`);
+        const msg = err.message ?? String(err);
+        if (msg.includes('redirect_uri_mismatch') || msg.includes('400')) {
+          const ru = chrome.identity.getRedirectURL();
+          setError(`OAuth 重定向 URI 未配置。请在 Google Cloud Console → APIs & Services → Credentials → 对应的 OAuth 2.0 客户端 → 已获授权的重定向 URI 中添加：${ru}`);
+          console.error('[Energy Extension] redirect_uri_mismatch. Add this redirect URI to Google Cloud Console:', ru);
+        } else {
+          setError(`登录失败: ${msg}`);
+        }
       }
     } finally {
       setLoggingIn(false);
@@ -82,7 +90,7 @@ export default function LoginApp() {
         </p>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 text-left break-all">
             {error}
           </div>
         )}
