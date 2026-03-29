@@ -78,12 +78,15 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
 
     // 根据 healLevel 恢复精力
     if (def.id === 'sleep' && typeof val === 'number') {
-      // 睡眠恢复规则：8h 标准恢复到上限，<8h 等比扣除上限，>8h 无额外奖励
+      // 睡眠恢复规则：睡眠设定今天的精力起点，但扣除已消耗部分
+      // 恢复后精力 = max(当前精力, 睡眠应恢复精力 - 今日已消耗)
       const hours = Math.min(val, 8);
       if (hours < 8 && hours > 0) {
         d.state.maxEnergy = Math.round(d.state.maxEnergy * hours / 8);
       }
-      d.state.energy = d.state.maxEnergy;
+      const sleepRecovery = d.state.maxEnergy;
+      const consumed = d.state.energyConsumed || 0;
+      d.state.energy = Math.max(d.state.energy, sleepRecovery - consumed);
     } else if (def.healLevel === 'big') {
       d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + d.state.maxEnergy * currentConfig.bigHealRatio);
     } else if (def.healLevel === 'mid') {
