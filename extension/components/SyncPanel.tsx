@@ -153,7 +153,7 @@ export default function SyncPanel({ onSynced }: Props) {
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white p-2 mt-2">
+    <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white p-2 z-10">
       {message && (
         <div className="text-[10px] text-center text-emerald-600 mb-1 animate-[fadeIn_0.2s_ease]">
           {message}
@@ -177,7 +177,7 @@ export default function SyncPanel({ onSynced }: Props) {
               placeholder="邮箱"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-emerald-400"
             />
             <input
               type="password"
@@ -185,36 +185,36 @@ export default function SyncPanel({ onSynced }: Props) {
               value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleEmailLogin()}
-              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-emerald-400"
             />
             <button
-              className="w-full bg-blue-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors disabled:opacity-50"
+              className="w-full bg-emerald-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-600 transition-colors disabled:opacity-50"
               onClick={handleEmailLogin}
               disabled={loggingIn}
             >
               {loggingIn ? '处理中...' : isRegister ? '注册' : '登录'}
             </button>
             <button
-              className="w-full text-[10px] text-gray-500 hover:text-blue-500 transition-colors"
+              className="w-full text-[10px] text-gray-500 hover:text-emerald-500 transition-colors"
               onClick={() => setIsRegister(!isRegister)}
             >
               {isRegister ? '已有账号？去登录' : '没有账号？去注册'}
             </button>
           </div>
         ) : (
-          <div className="space-y-1.5">
+          <div className="flex gap-2">
             <button
-              className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-600 transition-colors disabled:opacity-50"
               onClick={handleGoogleLogin}
               disabled={loggingIn}
             >
-              <LogIn size={14} /> {loggingIn ? '登录中...' : 'Google 登录'}
+              <LogIn size={14} /> {loggingIn ? '登录中...' : 'Google'}
             </button>
             <button
-              className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 text-gray-700 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
               onClick={() => setShowEmailForm(true)}
             >
-              <Mail size={14} /> 邮箱登录
+              <Mail size={14} /> 邮箱
             </button>
           </div>
         )

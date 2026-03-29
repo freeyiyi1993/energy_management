@@ -135,7 +135,7 @@ export default function AuthPanel({ onSynced }: Props) {
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white/80 p-2">
+    <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 backdrop-blur p-2 z-10">
       {message && (
         <div className="text-[10px] text-center text-emerald-600 mb-1 animate-[fadeIn_0.2s_ease]">
           {message}
@@ -144,7 +144,7 @@ export default function AuthPanel({ onSynced }: Props) {
 
       {!user ? (
         showEmailForm ? (
-          <div className="space-y-1.5">
+          <div className="max-w-md mx-auto space-y-1.5">
             <div className="flex items-center gap-1 mb-1">
               <button
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -159,7 +159,7 @@ export default function AuthPanel({ onSynced }: Props) {
               placeholder="邮箱"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-emerald-400"
             />
             <input
               type="password"
@@ -167,44 +167,43 @@ export default function AuthPanel({ onSynced }: Props) {
               value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleEmailLogin()}
-              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-emerald-400"
             />
             <button
-              className="w-full bg-blue-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors disabled:opacity-50"
+              className="w-full bg-emerald-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-600 transition-colors disabled:opacity-50"
               onClick={handleEmailLogin}
               disabled={loggingIn}
             >
               {loggingIn ? '处理中...' : isRegister ? '注册' : '登录'}
             </button>
             <button
-              className="w-full text-[10px] text-gray-500 hover:text-blue-500 transition-colors"
+              className="w-full text-[10px] text-gray-500 hover:text-emerald-500 transition-colors"
               onClick={() => setIsRegister(!isRegister)}
             >
               {isRegister ? '已有账号？去登录' : '没有账号？去注册'}
             </button>
           </div>
         ) : (
-          <div className="space-y-1.5">
+          <div className="max-w-md mx-auto flex gap-2">
             <button
-              className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-500 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-600 transition-colors disabled:opacity-50"
               onClick={handleGoogleLogin}
               disabled={loggingIn}
             >
-              <LogIn size={14} /> {loggingIn ? '登录中...' : 'Google 登录'}
+              <LogIn size={14} /> {loggingIn ? '登录中...' : 'Google'}
             </button>
             <button
-              className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 text-gray-700 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors"
               onClick={() => setShowEmailForm(true)}
             >
-              <Mail size={14} /> 邮箱登录
+              <Mail size={14} /> 邮箱
             </button>
           </div>
         )
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="max-w-md mx-auto flex items-center gap-2">
           <Cloud size={12} className="text-emerald-500 shrink-0" />
           <span className="text-[10px] text-gray-500 truncate flex-1">{user.email}</span>
-          <span className="text-[9px] text-gray-400">自动同步</span>
           <button
             className="text-[10px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 transition-colors flex items-center gap-1"
             onClick={() => handlePull(user.uid)}

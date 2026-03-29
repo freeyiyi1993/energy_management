@@ -38,7 +38,7 @@ export default function PopupApp() {
   }
 
   return (
-    <div className="relative bg-gray-50 p-2.5">
+    <div className="relative bg-gray-50 p-2.5 pb-12">
       <MenuPanel
         isOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -65,9 +65,7 @@ export default function PopupApp() {
         <SettingsPage data={data} storage={storage} onBack={() => navigateTo('main')} onSaved={fetchData} />
       )}
 
-      <div className="mt-3">
-        <SyncPanel onSynced={fetchData} />
-      </div>
+      <SyncPanel onSynced={fetchData} />
     </div>
   );
 }
