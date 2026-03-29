@@ -171,7 +171,7 @@ export default function StatsPage({ data, onBack }: Props) {
         </div>
 
 
-        <div className="h-[200px] overflow-y-auto border border-gray-200 rounded-md p-1.5 bg-white text-[11px]">
+        <div className="max-h-[50vh] overflow-y-auto border border-gray-200 rounded-md p-1.5 bg-white text-[11px]">
           {Object.keys(groupedLogs).length === 0 ? (
             <div className="text-center text-gray-400 py-5">暂无日志记录</div>
           ) : (

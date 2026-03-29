@@ -142,7 +142,7 @@ export default function SettingsPage({ data, storage, onBack, onSaved }: Props) 
         </div>
       )}
 
-      <div className="bg-white rounded-lg p-3 shadow-sm flex-1 overflow-y-auto max-h-[500px]">
+      <div className="bg-white rounded-lg p-3 shadow-sm">
         <div className="font-bold mb-3 text-[13px]">📊 基础配置</div>
         <InputRow config={config} onChange={handleChange} label="默认精力上限" field="maxEnergy" min={10} />
         <InputRow config={config} onChange={handleChange} label="最低精力保底" field="minEnergy" min={0} />

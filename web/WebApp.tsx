@@ -98,9 +98,9 @@ export default function WebApp() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 flex items-start justify-center pt-4 pb-4 px-4">
-        <div className="w-full max-w-md relative">
-          <div>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center px-4">
+        <div className="w-full max-w-md relative flex flex-col flex-1 min-h-0 pt-4">
+          <div className="flex-1 overflow-y-auto min-h-0 pb-2">
             <MenuPanel
               isOpen={menuOpen}
               onClose={() => setMenuOpen(false)}
@@ -129,7 +129,7 @@ export default function WebApp() {
           </div>
 
           {/* 底部同步面板 */}
-          <div className="mt-3">
+          <div className="shrink-0 py-2">
             <AuthPanel onSynced={fetchData} />
           </div>
         </div>
