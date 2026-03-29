@@ -1,131 +1,121 @@
-# 精力管理可视化 (Chrome 扩展)
+# 精力管理可视化
 
-这是一款基于现代前端技术栈（React + Vite + Tailwind CSS）开发的 Chrome 浏览器扩展。
+Chrome 扩展 + Web 双端应用。基于 React + Vite + Tailwind CSS，通过游戏化方式追踪身体精力与思维精力，支持 Firebase 跨设备同步。
 
-**设计灵感来源于《精力管理》(The Power of Full Engagement) 一书的核心理念**：
+**设计灵感来源于《精力管理》(The Power of Full Engagement)**：
 > "管理精力，而非时间。一小时精神涣散的加班，产出远远比不上 20 分钟心流状态的极速冲刺。"
 
-本扩展专为现代职场工作场景设计，抛弃了复杂的情感与精神维度，**极致聚焦于“身体精力”与“思维精力”**的动态平衡：
-- **身体精力 (Physical Energy)**：通过追踪你的睡眠、主食、喝水、运动、冥想与肠道管理，构建你的“精力蓄水池”。
-- **思维精力 (Mental Energy)**：通过番茄工作法（25分钟专注）进行高强度输出，并强制穿插短休，防止大脑化学物质耗尽。
+## 核心功能
 
-通过游戏化的方式，扩展会动态计算你的精力值，在你即将耗尽或连续过度专注时，通过科学的理念提醒你主动休息。
+- **精力条系统** — 实时精力值显示，自然衰减 + 分时段餐食惩罚（10:00/14:00/19:00），低精力全屏警告
+- **打卡任务** — 8 个内置任务（睡眠/运动/三餐/饮水/拉伸/午睡/冥想/肠道管理）+ 自定义任务，打卡恢复精力
+- **番茄钟** — 25 分钟专注计时，完成后评分 0-100%，连续 3 个强制休息
+- **长期成长** — 完美一天 maxEnergy+1 / 糟糕一天 maxEnergy-1 / 节假日豁免
+- **跨设备同步** — Google 登录，自动拉取/推送，Last-Write-Wins 策略
+- **统计分析** — maxEnergy / 消耗量 / 番茄数趋势图 + 操作日志
 
-## 🛠 技术栈
+## 技术栈
 
-- **框架**: React 19
-- **构建工具**: Vite 8 (针对 Chrome 扩展多页面架构定制)
-- **样式**: Tailwind CSS
-- **语言**: TypeScript
-- **图表**: Chart.js & react-chartjs-2
-- **测试**: Vitest & Puppeteer (UI 自动化测试)
+| 技术 | 用途 |
+|------|------|
+| React 19 + TypeScript | 组件化 UI，严格类型 |
+| Vite 8 | 双端构建（扩展 + Web） |
+| Tailwind CSS 3 | 原子类样式 |
+| Firebase Auth + Firestore | Google 登录 + 云同步 |
+| Chart.js | 统计图表 |
+| Chrome Manifest V3 | 扩展标准，Service Worker 后台 |
+| Vitest + Puppeteer | 单元测试 + UI 自动化 |
 
-## 📁 目录结构
+## 目录结构
 
-```text
-chrome_extension_energy/
- ├── conf/              # 构建与工具配置文件 (vite, tsconfig, tailwind, vitest 等)
- ├── src/               # 核心业务代码
- │    ├── public/       # 静态资源 (manifest.json, 图标等)
- │    ├── background/   # Service Worker (后台运行脚本，处理逻辑和定时器)
- │    ├── pages/        # 页面入口
- │    │    ├── popup/   # 扩展弹窗 SPA (包含看板、规则、统计、设置等子组件)
- │    │    └── finish/  # 全屏提示页面 (例如番茄钟结束、精力耗尽警告)
- │    ├── utils/        # 通用工具函数
- │    └── types/        # TypeScript 类型定义
- ├── tests/             # 单元测试与 UI 自动化测试
- ├── dist/              # 编译打包后的产物目录 (用于加载到 Chrome)
- └── package.json       # 项目依赖与脚本
+```
+extension/                     # Chrome 扩展端
+├── vite.config.ts             #   扩展 Vite 构建配置
+├── background/index.ts        #   Service Worker (衰减/番茄/日期翻转)
+├── storage.ts                 #   chrome.storage.local 实现 + 云同步
+├── pages/popup/               #   弹窗入口
+├── pages/login/               #   登录页
+├── pages/finish/              #   全屏提醒页
+├── components/SyncPanel.tsx   #   同步面板
+└── public/manifest.json       #   Manifest V3
+
+web/                           # Web 端
+├── vite.config.ts             #   Web Vite 构建配置
+├── WebApp.tsx                 #   Web 主组件 (含低精力覆盖层)
+├── storage.ts                 #   localStorage 实现 + 云同步
+├── web-ticker.ts              #   setInterval 替代 chrome.alarms
+└── components/AuthPanel.tsx   #   登录面板
+
+shared/                        # 双端共享
+├── types/index.ts             #   TypeScript 类型定义
+├── firebase.ts                #   Firebase 初始化
+├── storage.ts                 #   StorageInterface 抽象
+├── utils/time.ts              #   时间工具
+├── components/                #   MainDashboard, StatsPage, RulesPage, SettingsPage, MenuPanel
+└── public/                    #   共享静态资源
+
+tests/                         # 测试
+docs/                          # 项目文档 (PRD/技术设计/交互设计/Agent规划)
 ```
 
-## 🚀 快速开始
+## 快速开始
+
+### 环境要求
+
+- Node.js v18+
+- Firebase 项目（用于云同步，可选）
 
 ### 1. 安装依赖
-
-确保你已经安装了 [Node.js](https://nodejs.org/) (建议 v18+)。
 
 ```bash
 npm install
 ```
 
-### 2. 开发模式
+### 2. 配置环境变量
 
-由于 Chrome 扩展的特殊性，我们通过 Vite 构建监听文件变化：
-
-```bash
-npm run build -- --watch
-```
-*(注意：目前配置的 `npm run dev` 是针对普通 Web 预览的。开发 Chrome 扩展时，建议使用 watch 模式编译到 dist，然后在 Chrome 中重新加载)*
-
-### 3. 构建生产包
+复制 `.env.example` 为 `.env`，填入 Firebase 配置：
 
 ```bash
-npm run build
-```
-执行后，所有的构建产物都会生成在 `dist` 目录下。
-
-### 4. 在 Chrome 中加载扩展
-
-1. 打开 Chrome 浏览器，访问 `chrome://extensions/`。
-2. 开启右上角的 **“开发者模式”**。
-3. 点击 **“加载已解压的扩展程序”**。
-4. 选择本项目根目录下的 `dist` 文件夹。
-5. 扩展图标将出现在浏览器右上角，点击即可使用！
-
-## 🧪 运行测试
-
-项目包含了业务逻辑的单元测试和基于真实浏览器环境的 UI 自动化测试。
-
-### 运行单元测试 (Vitest)
-```bash
-npm run test
+cp .env.example .env
 ```
 
-### 运行 UI 自动化测试 (Puppeteer)
-在运行 UI 测试前，**必须先执行一次 `npm run build`**，因为 Puppeteer 会加载 `dist` 目录中的真实扩展。
+### 3. Chrome 扩展
+
 ```bash
 npm run build
-npm run test:ui
 ```
-*该脚本会自动启动一个带有扩展的 Chrome 实例，并模拟用户打开 Popup 菜单等交互操作。*
 
-## ⚙️ 核心功能
+在 Chrome 访问 `chrome://extensions/`，开启开发者模式，加载 `dist/` 目录。
 
-- **All in One 弹窗 (SPA)**: 点击扩展图标后，你可以在一个界面内通过侧边菜单无缝切换【主看板】、【规则说明】、【数据统计】和【设置中心】。
-- **自定义设置**: 在设置中心，你可以自由调整最大精力值上限、各项任务的奖惩分数、精力随时间衰减的速率等。所有设置都会立即生效并持久化到 Chrome 本地存储中。
-- **番茄钟与疲劳提醒**: 当启动番茄钟倒计时结束，或者当前精力值低于 20 时，会自动弹出一个新的提醒页面，强制要求你休息。
+### 4. Web 版
 
-## 💽 存储性能与极客细节
+```bash
+npm run dev:web           # 开发服务器 localhost:3000
+npm run build:web         # 构建到 dist-web/
+npm run deploy:web        # 部署到 Firebase Hosting
+```
 
-本项目目前使用“纯本地化”策略，所有数据均保存在 Chrome 的 `chrome.storage.local` 中（默认配额为 5MB）。为了打破常规的存储限制，我们在日志系统上进行了极限的**数据结构压缩 (Tuple Compression)**。
+## 常用命令
 
-**如果每天都是“完美一天”，5MB 可以存多久？**
-假设用户每天满负荷运转，达到完美一天（清空所有任务 + 至少 4 个完美番茄）：
-1. **每日日志 (Logs)**: 睡眠(1) + 运动(1) + 主食(3) + 喝水(3) + 拉伸(3) + 小憩(1) + 冥想(3) + 肠道管理(1) + 番茄钟(4) = **20 条打卡记录**。采用高度压缩的纯数字 Tuple 结构（`[时间戳, 动作ID, 数值, 精力变化]`），单条日志仅占约 `26 Bytes`。每日日志总增量约 `520 Bytes`。
-2. **每日统计 (Stats)**: 凌晨结转产生的每日结算对象，序列化后约 `90 Bytes`。
-3. **每日总增量**: 约 `610 Bytes / 天`。
+```bash
+npm run build             # 构建 Chrome 扩展 → dist/
+npm run build:web         # 构建 Web 版 → dist-web/
+npm run dev:web           # Web 开发服务器
+npm run test              # 单元测试 (Vitest)
+npm run test:ui           # UI 测试 (Puppeteer, 需先 build)
+npm run lint              # ESLint
+```
 
-**计算结果**：
-`(5,242,880 Bytes - 1000 Bytes 基础开销) / 610 Bytes ≈ 8,593 天`
-**8,593 天 / 365 天 ≈ 23.5 年！**
+## 双端差异
 
-**结论**：在完全不清理日志的纯本地模式下，即使你每天都是极其充实且高产的“完美一天”，**5MB 的存储容量也足以让你连续使用 23 年半**。因此，我们彻底去除了日志条数的截断限制，让你的每一滴精力轨迹都永久留存！
+| 维度 | Chrome 扩展 | Web 版 |
+|------|------------|--------|
+| 入口 | 浏览器工具栏弹窗 | 独立网页 |
+| 后台 | Service Worker + chrome.alarms | setInterval (web-ticker) |
+| 存储 | chrome.storage.local + Firebase | localStorage + Firebase |
+| 登录 | chrome.identity OAuth | Firebase signInWithPopup |
+| 提醒 | 新开标签页 | 当前页全屏覆盖 |
 
-## 🗺️ 商业化与演进路线 (Roadmap)
+## 存储效率
 
-本插件为本地个人使用，后续为了将本插件打造为一款可正式上架、具备商业化潜力的成熟产品，我们规划了以下演进路线：
-
-### 1. 核心产品力升级
-- [ ] **日历与假期模式**：支持跳过非工作日，节假日不扣减精力；支持订阅外部日历（如 Google Calendar）。
-- [ ] **可视化数据复盘**：提供周报/月报功能（类似 GitHub 绿点图），分析用户的“高产时段”与“疲劳规律”。
-- [ ] **友好的新手引导 (Onboarding)**：首次安装时提供问卷式引导，自动生成匹配用户作息的初始化配置，降低认知门槛。
-
-### 2. 国际化与合规上架
-- [ ] **多语言支持 (i18n)**：抽离硬编码，支持中文、英文、日文等自由切换，扩大全球用户盘子。
-- [ ] **隐私与合规声明**：撰写标准的 Privacy Policy，主打“100% 隐私，数据纯本地存储”。
-- [ ] **发布至 Chrome Web Store**：准备高质量的 Icon、宣传图 (Promo Image) 及商店痛点营销文案。
-
-### 3. 潜在商业化探索 (待定)
-- [ ] **多端产品矩阵**：开发独立 App 或微信/跨端小程序，覆盖非电脑办公场景，形成全天候精力闭环。
-- [ ] **Freemium 模式**：基础精力管理免费，高级数据报表、自定义白噪音等功能作为 Pro 版订阅（如接入 Stripe/LemonSqueezy）。
-- [?] **账号系统与跨端同步**：是否接入 BaaS（如 Supabase）实现云端数据漫游？（*当前保持纯本地化体验极佳，云端化会增加合规与维护成本，暂时存疑并保持观望*）。
+日志采用压缩 Tuple 结构 `[时间戳, 动作ID, 数值, 精力变化]`，单条仅 ~26 Bytes。5MB 本地存储可支撑 **23+ 年**日常使用。

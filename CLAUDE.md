@@ -17,34 +17,35 @@
 ## Project Structure
 
 ```
-shared/                       # 双端共享代码
-├── types/index.ts            # TypeScript 接口 + CustomTaskDef + PageType
-├── firebase.ts               # Firebase 初始化 (auth, db, googleProvider)
-├── storage.ts                # StorageInterface 定义 + Firebase 云同步函数
-├── utils/time.ts             # Time parsing utility
-└── components/               # 共享 UI 组件 (MainDashboard, MenuPanel, RulesPage, StatsPage, SettingsPage)
+extension/                     # Chrome 扩展端
+├── vite.config.ts             #   扩展 Vite 构建配置
+├── background/index.ts        #   Service Worker (衰减/番茄/日期翻转)
+├── storage.ts                 #   chrome.storage.local 实现 + 云同步
+├── pages/popup/               #   弹窗入口 (PopupApp.tsx)
+├── pages/login/               #   登录页 (LoginApp.tsx)
+├── pages/finish/              #   全屏提醒页 (FinishApp.tsx)
+├── components/SyncPanel.tsx   #   同步面板
+└── public/manifest.json       #   Manifest V3
 
-extension/                    # Chrome 扩展专属代码
-├── background/index.ts       # Service Worker: alarms, energy decay, day rollover
-├── storage.ts                # chrome.storage.local 实现 StorageInterface
-├── public/manifest.json      # Manifest V3 (构建时复制到 dist/)
-└── pages/
-    ├── popup/                # 扩展弹窗入口 (PopupApp.tsx, main.tsx, index.html)
-    └── finish/               # 全屏提醒页 (FinishApp.tsx)
+web/                           # Web 端
+├── vite.config.ts             #   Web Vite 构建配置
+├── WebApp.tsx                 #   Web 主组件 (含低精力覆盖层)
+├── storage.ts                 #   localStorage 实现 + 云同步
+├── web-ticker.ts              #   setInterval 替代 chrome.alarms
+└── components/AuthPanel.tsx   #   登录面板
 
-web/                          # Web 独立版专属代码
-├── WebApp.tsx                # Web 版主组件
-├── main.tsx                  # React 入口
-├── index.html                # HTML 模板
-├── storage.ts                # localStorage 实现 StorageInterface
-├── web-ticker.ts             # setInterval 替代 chrome.alarms
-├── vite.config.ts            # Web 版 Vite 配置
-└── components/AuthPanel.tsx  # 登录/同步 UI
+shared/                        # 双端共享
+├── types/index.ts             #   TypeScript 类型定义
+├── firebase.ts                #   Firebase 初始化
+├── storage.ts                 #   StorageInterface 抽象
+├── utils/time.ts              #   时间工具
+├── components/                #   MainDashboard, StatsPage, RulesPage, SettingsPage, MenuPanel
+└── public/                    #   共享静态资源
 
-conf/                         # Build configs (vite, tsconfig, tailwind, vitest, postcss, eslint)
-tests/                        # Unit tests + UI automation tests
-dist/                         # Chrome 扩展构建产物
-dist-web/                     # Web 版构建产物
+tests/                         # 测试
+docs/                          # 项目文档
+dist/                          # Chrome 扩展构建产物
+dist-web/                      # Web 版构建产物
 ```
 
 ## Common Commands
@@ -129,7 +130,12 @@ npm run lint              # ESLint
 - [x] countsForPerfectDay 完美一天动态判断
 - [x] Web 去卡片样式 + 自动云同步
 - [x] Chrome 扩展登录 + 云同步 (auth tab + SyncPanel)
-- [ ] 更新 README
+- [x] 消除 conf/ 目录，构建配置归各端 + 根目录
+- [x] 餐食惩罚改为分时段 (10:00/14:00/19:00)
+- [x] Chrome 扩展独立登录页 (extension/pages/login/)
+- [x] Web 端低精力提醒 (当前页全屏覆盖)
+- [x] 项目文档体系 (docs/PRD + TECH_DESIGN + UED + AGENT_PLAN)
+- [x] 更新 README
 
 ## 重启后的标准起手式
 请读取 CLAUDE.md 和最近的 git log，告诉我项目当前状态，然后继续上次未完成的任务
