@@ -91,15 +91,9 @@ export default function SyncPanel({ onSynced }: Props) {
   }, [user, handlePush]);
 
   const handleGoogleLogin = async () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID_EXTENSION;
-    if (!clientId) {
-      showMessage('未配置 VITE_GOOGLE_CLIENT_ID_EXTENSION');
-      return;
-    }
-
     setLoggingIn(true);
     try {
-      const response = await chrome.runtime.sendMessage({ type: 'GOOGLE_LOGIN', clientId });
+      const response = await chrome.runtime.sendMessage({ type: 'GOOGLE_LOGIN' });
       if (response?.error) throw new Error(response.error);
       if (!response?.accessToken) throw new Error('未获取到 access_token');
 
@@ -107,11 +101,7 @@ export default function SyncPanel({ onSynced }: Props) {
       await signInWithCredential(auth, credential);
     } catch (err: any) {
       const msg = err.message ?? String(err);
-      if (msg.includes('redirect_uri_mismatch') || msg.includes('400')) {
-        const ru = chrome.identity.getRedirectURL();
-        showMessage(`OAuth 重定向 URI 未配置，请在 Google Cloud Console 添加: ${ru}`);
-        console.error('[Energy] redirect_uri_mismatch. Add redirect URI:', ru);
-      } else if (msg !== 'The user did not approve access.') {
+      if (msg !== 'The user did not approve access.') {
         showMessage(`登录失败: ${msg}`);
       }
     } finally {

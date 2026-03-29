@@ -5,6 +5,10 @@
   "description": "游戏化管理你的精力和日常习惯。",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1G8tE8pdw2ayRrUo98ka8NaqDmn8zgELdXGuxHlPJl2dGHL4PG9i6yQllZpd5psSNzCrNx1dA3O+DAcsW7uZxYWaRtfZwasVdX7oQIQ8L3K+zfcAucBGpPCvnEdkZYoI3xmVFJ8Y8zZOxDvv/ZMPS7OoI4+WQrgRSOiyAlMhTJgkcqttyAxmgeCaVc9E3yK1R8QK2/6M15o2Ava2bTgtK8nraY3wXiC6AC9xwHUa0GOc9e2bGpA0N08iYTMdhpBS7MqPTqZwTYpys8HA8EI1wz239H2RvzThpFYn0F5rsQ420MODG+pMyGr3jnFSbCOePYIYJvfq+PcUU8uGQgW0twIDAQAB",
   "permissions": ["storage", "alarms", "identity"],
+  "oauth2": {
+    "client_id": "436454572775-vt8fsho5l7t0nmv5so1jgdkglknanjoq.apps.googleusercontent.com",
+    "scopes": ["openid", "email", "profile"]
+  },
   "action": {
     "default_popup": "extension/pages/popup/index.html",
     "default_title": "精力管理"

@@ -128,33 +128,23 @@ chrome.runtime.onInstalled.addListener(() => {
   initData();
 });
 
-// Google OAuth: 在 service worker 中执行 launchWebAuthFlow，
-// 避免 popup 关闭导致 OAuth 流程中断
+// Google OAuth: 使用 chrome.identity.getAuthToken，
+// Chrome 内部处理 OAuth 流程，无需 redirect URI
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'GOOGLE_LOGIN') {
-    const redirectUrl = chrome.identity.getRedirectURL();
-    console.log('[Energy] OAuth redirect URL:', redirectUrl);
-    const scopes = encodeURIComponent('openid email profile');
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${msg.clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUrl)}&scope=${scopes}`;
-
-    chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true })
-      .then(responseUrl => {
-        if (!responseUrl) {
-          sendResponse({ error: '授权被取消' });
+    chrome.identity.getAuthToken({ interactive: true })
+      .then(result => {
+        const token = typeof result === 'string' ? result : result.token;
+        if (!token) {
+          sendResponse({ error: '未获取到 token' });
           return;
         }
-        const hashParams = new URLSearchParams(responseUrl.split('#')[1]);
-        const accessToken = hashParams.get('access_token');
-        if (!accessToken) {
-          sendResponse({ error: '未获取到 access_token' });
-          return;
-        }
-        sendResponse({ accessToken });
+        sendResponse({ accessToken: token });
       })
       .catch(err => {
         sendResponse({ error: err.message ?? String(err) });
       });
-    return true; // keep message channel open for async response
+    return true;
   }
 });
 
