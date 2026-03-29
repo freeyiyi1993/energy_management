@@ -4,7 +4,6 @@ import { auth } from '../../shared/firebase';
 import { syncToCloud, pullAndMerge, forcePull } from '../storage';
 import { Cloud, LogIn, LogOut, RefreshCw, Download } from 'lucide-react';
 
-
 interface Props {
   onSynced: () => void;
 }
