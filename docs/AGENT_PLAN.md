@@ -229,7 +229,17 @@
 - **Vite 配置**: qa 负责 `extension/vite.config.ts` 和 `web/vite.config.ts`
 - **根目录配置** (tsconfig / tailwind / eslint / vitest): qa 统一管理
 
-## 4. 状态汇报机制
+## 4. 提交规范
+
+每个 Agent 完成一个独立功能点后**必须立即 commit**，不要攒到最后批量提交。
+
+**规则**:
+- commit message 格式: `type: 简要描述`（type: feat / fix / refactor / chore / docs）
+- 每个 commit 只做一件事
+- 先确认构建通过 (`npm run build` 或 `npm run build:web`) 再提交
+- CTO 不负责替子 Agent 补提交
+
+## 5. 状态汇报机制
 
 每个 Agent 完成任务后，在 `status/` 目录写入汇报文件:
 
