@@ -4,6 +4,7 @@ import RulesPage from '../../../shared/components/RulesPage';
 import StatsPage from '../../../shared/components/StatsPage';
 import SettingsPage from '../../../shared/components/SettingsPage';
 import MenuPanel from '../../../shared/components/MenuPanel';
+import SyncPanel from '../../components/SyncPanel';
 import { type StorageData, type PageType } from '../../../shared/types';
 import { storage } from '../../storage';
 
@@ -62,6 +63,8 @@ export default function PopupApp() {
       {currentPage === 'settings' && (
         <SettingsPage data={data} storage={storage} onBack={() => navigateTo('main')} onSaved={fetchData} />
       )}
+
+      <SyncPanel onSynced={fetchData} />
     </div>
   );
 }
