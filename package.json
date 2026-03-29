@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev:web": "vite --config web/vite.config.ts",
-    "build": "tsc -b conf/tsconfig.app.json && vite build --config conf/vite.extension.config.ts",
-    "build:web": "tsc -b conf/tsconfig.app.json && vite build --config web/vite.config.ts",
+    "build": "tsc -b tsconfig.app.json && vite build --config extension/vite.config.ts",
+    "build:web": "tsc -b tsconfig.app.json && vite build --config web/vite.config.ts",
     "deploy:web": "npm run build:web && firebase deploy --only hosting",
-    "lint": "eslint -c conf/eslint.config.js .",
+    "lint": "eslint -c eslint.config.js .",
     "preview": "vite preview",
-    "test": "vitest run --config conf/vitest.config.ts",
+    "test": "vitest run --config vitest.config.ts",
     "test:ui": "node tests/ui_test.js"
   },
   "dependencies": {

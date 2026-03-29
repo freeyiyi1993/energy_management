@@ -8,7 +8,7 @@ export default defineConfig({
   envDir: resolve(__dirname, '..'),
   publicDir: resolve(__dirname, '../extension/public'),
   css: {
-    postcss: resolve(__dirname, '../conf/postcss.config.js'),
+    postcss: resolve(__dirname, '../postcss.config.js'),
   },
   build: {
     outDir: resolve(__dirname, '../dist-web'),

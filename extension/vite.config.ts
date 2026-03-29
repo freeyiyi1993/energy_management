@@ -4,18 +4,18 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  publicDir: resolve(__dirname, '../extension/public'),
+  publicDir: resolve(__dirname, 'public'),
   css: {
-    postcss: resolve(__dirname, 'postcss.config.js'),
+    postcss: resolve(__dirname, '../postcss.config.js'),
   },
   build: {
     outDir: resolve(__dirname, '../dist'),
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        popup: resolve(__dirname, '../extension/pages/popup/index.html'),
-        finish: resolve(__dirname, '../extension/pages/finish/finish.html'),
-        background: resolve(__dirname, '../extension/background/index.ts')
+        popup: resolve(__dirname, 'pages/popup/index.html'),
+        finish: resolve(__dirname, 'pages/finish/finish.html'),
+        background: resolve(__dirname, 'background/index.ts')
       },
       output: {
         entryFileNames: (chunkInfo) => {
