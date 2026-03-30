@@ -136,10 +136,11 @@ async function tick() {
       state.pomodoro.running = false;
       state.pomodoro.timeLeft = 25 * 60;
       state.pomodoro.consecutiveCount = (state.pomodoro.consecutiveCount || 0) + 1;
-      if (state.pomodoro.consecutiveCount >= 3) {
+      const isForcedBreak = state.pomodoro.consecutiveCount >= 3;
+      if (isForcedBreak) {
         state.pomodoro.consecutiveCount = 0;
       }
-      // Web 版不弹新标签，由 UI 层处理通知
+      if (pomodoroCompleteCallback) pomodoroCompleteCallback(isForcedBreak);
     }
   }
 
@@ -154,9 +155,14 @@ async function tick() {
 
 let tickInterval: ReturnType<typeof setInterval> | null = null;
 let lowEnergyCallback: (() => void) | null = null;
+let pomodoroCompleteCallback: ((forcedBreak: boolean) => void) | null = null;
 
 export function setLowEnergyCallback(cb: (() => void) | null) {
   lowEnergyCallback = cb;
+}
+
+export function setPomodoroCompleteCallback(cb: ((forcedBreak: boolean) => void) | null) {
+  pomodoroCompleteCallback = cb;
 }
 
 export function startWebTicker() {

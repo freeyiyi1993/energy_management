@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { storage } from './storage';
-import { initWebData, startWebTicker, stopWebTicker, setLowEnergyCallback } from './web-ticker';
+import { initWebData, startWebTicker, stopWebTicker, setLowEnergyCallback, setPomodoroCompleteCallback } from './web-ticker';
 import { type StorageData } from '../shared/types';
 import MainDashboard from '../shared/components/MainDashboard';
 import RulesPage from '../shared/components/RulesPage';
@@ -24,12 +24,7 @@ export default function WebApp() {
   const [ready, setReady] = useState(false);
   const [overlay, setOverlay] = useState<OverlayState>(null);
 
-  const prevRunningRef = useRef(false);
-  const prevConsecutiveRef = useRef(0);
-  const syncingRef = useRef(false);
-
-  const fetchData = async (fromSync?: boolean) => {
-    if (fromSync) syncingRef.current = true;
+  const fetchData = async () => {
     const result = await storage.get(null);
     setData(result as StorageData);
   };
@@ -48,6 +43,10 @@ export default function WebApp() {
       setLowEnergyCallback(() => {
         setOverlay({ type: 'energy' });
       });
+      setPomodoroCompleteCallback((forcedBreak) => {
+        setOverlay(prev => prev ?? { type: 'pomodoro', forcedBreak });
+        fetchData();
+      });
       startWebTicker();
       await fetchData();
       setReady(true);
@@ -62,11 +61,12 @@ export default function WebApp() {
       clearInterval(interval);
       stopWebTicker();
       setLowEnergyCallback(null);
+      setPomodoroCompleteCallback(null);
     };
   }, [currentPage]);
 
   // 客户端检测番茄钟时间到（不等 60s ticker）
-  // 始终从 storage 读最新数据，避免 React 闭包持有被 sync 覆写前的旧值
+  // 直接设置 overlay，不再通过 running 变化间接检测（避免刷新时误触发）
   useEffect(() => {
     if (!data?.state?.pomodoro.running) return;
 
@@ -78,40 +78,21 @@ export default function WebApp() {
       const realTimeLeft = d.state.pomodoro.timeLeft - elapsed;
 
       if (realTimeLeft <= 0) {
+        const newConsec = (d.state.pomodoro.consecutiveCount || 0) + 1;
+        const forcedBreak = newConsec >= 3;
         d.state.pomodoro.running = false;
         d.state.pomodoro.timeLeft = 25 * 60;
-        d.state.pomodoro.consecutiveCount = (d.state.pomodoro.consecutiveCount || 0) + 1;
-        if (d.state.pomodoro.consecutiveCount >= 3) {
-          d.state.pomodoro.consecutiveCount = 0;
-        }
+        d.state.pomodoro.consecutiveCount = forcedBreak ? 0 : newConsec;
         d.state.lastUpdateTime = Date.now();
         await storage.set({ state: d.state });
         fetchData();
+        setOverlay(prev => prev ?? { type: 'pomodoro', forcedBreak });
       }
     };
 
     const timer = setInterval(checkCompletion, 1000);
     return () => clearInterval(timer);
   }, [data?.state?.pomodoro.running]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 检测番茄钟完成：running 从 true → false
-  useEffect(() => {
-    if (!data?.state || overlay) return;
-
-    const { pomodoro } = data.state;
-
-    if (prevRunningRef.current && !pomodoro.running) {
-      if (syncingRef.current) {
-        syncingRef.current = false; // 跳过，这是同步引起的状态变化
-      } else {
-        const wasForcedBreak = prevConsecutiveRef.current >= 2;
-        setOverlay({ type: 'pomodoro', forcedBreak: wasForcedBreak });
-      }
-    }
-
-    prevRunningRef.current = pomodoro.running;
-    prevConsecutiveRef.current = pomodoro.consecutiveCount;
-  }, [data, overlay]);
 
   const navigateTo = (page: PageType) => {
     setCurrentPage(page);
@@ -164,7 +145,7 @@ export default function WebApp() {
             )}
           </div>
 
-          <AuthPanel onSynced={() => fetchData(true)} />
+          <AuthPanel onSynced={() => fetchData()} />
         </div>
       </div>
 
