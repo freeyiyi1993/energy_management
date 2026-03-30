@@ -88,10 +88,8 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
 
     // 根据 healLevel 恢复精力
     if (def.id === 'sleep' && typeof val === 'number') {
-      // 睡眠不足直接扣减：deficit = maxEnergy × (8 - hours) / 8
-      const hours = Math.min(val, 8);
-      const deficit = d.state.maxEnergy * (8 - hours) / 8;
-      d.state.energy = Math.max(0, d.state.energy - deficit);
+      const delta = d.state.maxEnergy * (8 - Math.min(val, 8)) / 8;
+      d.state.energy -= delta;
     } else if (def.healLevel === 'big') {
       d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + d.state.maxEnergy * currentConfig.bigHealRatio);
     } else if (def.healLevel === 'mid') {
