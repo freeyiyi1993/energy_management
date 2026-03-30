@@ -9,8 +9,20 @@ export async function initWebData() {
   const config = data.config || DEFAULT_CONFIG;
   if (!data.config) await storage.set({ config });
 
-  const taskDefs = data.taskDefs || DEFAULT_TASK_DEFS;
-  if (!data.taskDefs) await storage.set({ taskDefs });
+  let taskDefs = data.taskDefs || DEFAULT_TASK_DEFS;
+  // 内置任务属性迁移：healLevel/maxCount 等跟随 DEFAULT_TASK_DEFS 更新
+  const builtinMap = new Map(DEFAULT_TASK_DEFS.filter(d => d.builtin).map(d => [d.id, d]));
+  let taskDefsChanged = !data.taskDefs;
+  taskDefs = taskDefs.map(def => {
+    const builtin = builtinMap.get(def.id);
+    if (!builtin) return def;
+    if (def.healLevel !== builtin.healLevel || def.maxCount !== builtin.maxCount) {
+      taskDefsChanged = true;
+      return { ...def, healLevel: builtin.healLevel, maxCount: builtin.maxCount };
+    }
+    return def;
+  });
+  if (taskDefsChanged) await storage.set({ taskDefs });
 
   if (!data.state) {
     const now = Date.now();
