@@ -179,8 +179,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              const v = parseFloat(e.currentTarget.value);
-              if (!isNaN(v)) handleTaskSave(def, v);
+              e.currentTarget.blur();
             }
           }}
         />
