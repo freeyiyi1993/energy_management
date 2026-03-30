@@ -39,9 +39,6 @@ export default function RulesPage({ data, onBack }: { data: StorageData; onBack:
               <span>每日 8:00 基础恢复</span> <span className="text-emerald-500 font-bold">恢复到上限 100%</span>
             </li>
             <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
-              <span>睡眠不足 8h</span> <span className="text-red-500 font-bold">精力 -= 上限 × (8-时数)/8</span>
-            </li>
-            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
               <span>主食 (中恢复)</span> <span className="text-emerald-500 font-bold">+ {config.midHeal} 点/次</span>
             </li>
             <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
@@ -56,6 +53,9 @@ export default function RulesPage({ data, onBack }: { data: StorageData; onBack:
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <div className="font-bold text-[13px] mb-2 flex items-center gap-1">🔥 日常消耗</div>
           <ul className="list-none p-0 m-0 text-xs">
+            <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
+              <span>睡眠不足 8h</span> <span className="text-red-500 font-bold">精力 -= 上限 × (8-时数)/8</span>
+            </li>
             <li className="flex justify-between py-1 border-b border-dashed border-gray-200 last:border-0">
               <span>基础自然流失</span> <span className="text-red-500 font-bold">- {config.decayRate} 点/小时</span>
             </li>
