@@ -99,6 +99,9 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
     // healLevel === 'none' → 不恢复精力
 
     const energyDiff = d.state.energy - oldEnergy;
+    if (energyDiff < 0) {
+      d.state.energyConsumed = (d.state.energyConsumed || 0) + Math.abs(energyDiff);
+    }
 
     // 构建 actionId：内置任务用固定映射，自定义任务用 100+
     const builtinMap: Record<string, number> = {
