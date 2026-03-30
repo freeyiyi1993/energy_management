@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronDown, ChevronRight } from 'lucide-react';
-import { type StorageData, DEFAULT_TASK_DEFS } from '../types';
+import { type StorageData, type CompactLog, DEFAULT_TASK_DEFS } from '../types';
+import { getLogTimestamp } from '../storage';
+import { getLogicalDate } from '../utils/time';
 import { Chart, LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Tooltip, Legend } from 'chart.js';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Tooltip, Legend);
@@ -13,16 +15,21 @@ interface Props {
 export default function StatsPage({ data, onBack }: Props) {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
+  const todayChartRef = useRef<HTMLCanvasElement>(null);
+  const todayChartInstance = useRef<Chart | null>(null);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
 
   const toggleDate = (dateStr: string) => {
     setExpandedDates(prev => ({ ...prev, [dateStr]: !prev[dateStr] }));
   };
 
+  const dataResetAt = data.dataResetAt || 0;
+
   useEffect(() => {
     if (!chartRef.current) return;
 
-    const stats = data.stats || [];
+    const resetDateStr = dataResetAt ? new Date(dataResetAt).toLocaleDateString('en-CA') : '';
+    const stats = (data.stats || []).filter((s: any) => !resetDateStr || s.date >= resetDateStr);
     const recentStats = stats.slice(-6);
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
 
@@ -79,8 +86,77 @@ export default function StatsPage({ data, onBack }: Props) {
     };
   }, [data]);
 
-  const logs = data.logs || [];
-  const showLogs = [...logs].sort((a, b) => {
+  // 当天精力流失折线图
+  useEffect(() => {
+    if (!todayChartRef.current || !data.state) return;
+
+    const maxEnergy = data.state.maxEnergy;
+    const curEnergy = data.state.energy;
+    const now = Date.now();
+
+    // 今天 8:00 的时间戳
+    const [y, m, d] = getLogicalDate().split('-').map(Number);
+    const today8AM = new Date(y, m - 1, d, 8, 0, 0).getTime();
+
+    // 筛选今日 CompactLog
+    const todayLogs = (data.logs || [])
+      .filter((log): log is CompactLog => Array.isArray(log) && log.length === 4 && log[0] >= today8AM && log[0] <= now)
+      .sort((a, b) => a[0] - b[0]);
+
+    // 总衰减 = maxEnergy + 所有正向 energyDiff 之和 - 所有负向 energyDiff 绝对值 - curEnergy
+    const totalDiffs = todayLogs.reduce((sum, log) => sum + log[3], 0);
+    const totalDecay = maxEnergy + totalDiffs - curEnergy;
+    const timeSpan = now - today8AM;
+
+    // 构建数据点: (时间, 精力)
+    const points: { t: number; e: number }[] = [{ t: today8AM, e: maxEnergy }];
+    let cumDiffs = 0;
+    for (const log of todayLogs) {
+      cumDiffs += log[3];
+      const elapsed = log[0] - today8AM;
+      const decay = timeSpan > 0 ? totalDecay * (elapsed / timeSpan) : 0;
+      points.push({ t: log[0], e: Math.max(0, maxEnergy + cumDiffs - decay) });
+    }
+    points.push({ t: now, e: curEnergy });
+
+    const labels = points.map(p => {
+      const dt = new Date(p.t);
+      return `${dt.getHours().toString().padStart(2, '0')}:${dt.getMinutes().toString().padStart(2, '0')}`;
+    });
+    const energyData = points.map(p => Number(p.e.toFixed(1)));
+
+    if (todayChartInstance.current) todayChartInstance.current.destroy();
+
+    todayChartInstance.current = new Chart(todayChartRef.current, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: '精力值',
+          data: energyData,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 0, max: Math.ceil(maxEnergy * 1.1), title: { display: true, text: '精力', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+          x: { ticks: { font: { size: 9 }, maxRotation: 0 } }
+        }
+      }
+    });
+
+    return () => { if (todayChartInstance.current) todayChartInstance.current.destroy(); };
+  }, [data]);
+
+  const allLogs = (data.logs || []).filter(log => !dataResetAt || getLogTimestamp(log) >= dataResetAt);
+  const showLogs = [...allLogs].sort((a, b) => {
     const tA = Array.isArray(a) ? a[0] : (a.t || (a.time ? new Date(a.time).getTime() : 0));
     const tB = Array.isArray(b) ? b[0] : (b.t || (b.time ? new Date(b.time).getTime() : 0));
     return tB - tA;
@@ -158,7 +234,7 @@ export default function StatsPage({ data, onBack }: Props) {
     if (dates.length > 0 && Object.keys(expandedDates).length === 0) {
       setExpandedDates({ [dates[0]]: true });
     }
-  }, [logs]);
+  }, [allLogs]);
 
   return (
     <div className="animate-[fadeIn_0.2s_ease]">
@@ -174,6 +250,10 @@ export default function StatsPage({ data, onBack }: Props) {
           <canvas ref={chartRef}></canvas>
         </div>
 
+        <div className="text-xs font-bold text-gray-600 mb-1 mt-2">今日精力曲线</div>
+        <div className="w-full h-[140px] mb-3">
+          <canvas ref={todayChartRef}></canvas>
+        </div>
 
         <div className="max-h-[50vh] overflow-y-auto border border-gray-200 rounded-md p-1.5 bg-white text-[11px]">
           {Object.keys(groupedLogs).length === 0 ? (
