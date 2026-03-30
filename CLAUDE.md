@@ -93,9 +93,9 @@ npm run lint              # ESLint
 - **状态**: 已完成
 
 ### ADR-005: 睡眠与运动精力规则
-- **睡眠**: 设纯天花板，只降不升。公式: `energy = min(当前精力, maxEnergy × min(sleepHours/8, 1))`。早上填时压低精力，晚上填时无变化
+- **睡眠**: 不足 8h 直接扣减。公式: `energy -= maxEnergy × (8 - min(sleepHours, 8)) / 8`。睡 8h 不扣，睡 6h 扣 25%，睡 4h 扣 50%
 - **运动**: healLevel='none'，不恢复精力，仅计入完美一天判定
-- **原因**: 睡眠不减 energyConsumed（当前精力已反映衰减）；运动是健康习惯追踪而非精力恢复手段
+- **原因**: 直接扣减语义清晰，不依赖 energyConsumed；运动是健康习惯追踪而非精力恢复手段
 - **状态**: 已实现
 
 ### ADR-006: 完美一天动态判断
