@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { type StorageData, type AppLogEntry } from './types';
+import { type StorageData, type AppLogEntry, type Tasks } from './types';
 
 // 统一存储接口：各平台（Chrome 扩展 / Web）各自实现
 export interface StorageInterface {
@@ -88,7 +88,25 @@ export function mergeLogs(localLogs: AppLogEntry[], cloudLogs: AppLogEntry[]): A
   return merged;
 }
 
-/** 智能拉取：合并日志，状态取更新的一方 */
+/** 合并任务状态：已完成的优先，都完成取较大值 */
+function mergeTasks(local: Tasks | undefined, cloud: Tasks | undefined): Tasks {
+  const merged: Tasks = { ...local };
+  if (!cloud) return merged;
+  for (const key of Object.keys(cloud)) {
+    const lv = merged[key];
+    const cv = cloud[key];
+    // 本地未完成（null/false/undefined），取云端
+    if (lv === null || lv === undefined || lv === false) {
+      merged[key] = cv;
+    } else if (typeof lv === 'number' && typeof cv === 'number' && cv > lv) {
+      // 都是数字，取较大值（如 counter 类型）
+      merged[key] = cv;
+    }
+  }
+  return merged;
+}
+
+/** 智能拉取：合并日志和任务，状态取更新的一方 */
 export async function pullAndMerge(storage: StorageInterface, uid: string): Promise<'cloud' | 'local' | 'merged' | 'empty'> {
   const cloudData = await syncFromCloud(uid);
   if (!cloudData) return 'empty';
@@ -102,15 +120,17 @@ export async function pullAndMerge(storage: StorageInterface, uid: string): Prom
 
   // 合并日志
   const mergedLogs = mergeLogs(localLogs, cloudLogs);
+  // 合并任务状态
+  const mergedTasks = mergeTasks(localData.tasks, cloudData.tasks);
 
-  // 状态取更新的一方，但日志始终合并
+  // 状态取更新的一方，但日志和任务始终合并
   if (cloudTime > localTime) {
-    await storage.set({ ...cloudData, logs: mergedLogs });
+    await storage.set({ ...cloudData, tasks: mergedTasks, logs: mergedLogs });
     return 'cloud';
   }
-  // 本地更新或相同：保留本地状态，但补入云端日志
-  if (mergedLogs.length > localLogs.length) {
-    await storage.set({ ...localData, logs: mergedLogs });
+  // 本地更新或相同：保留本地状态，但合并日志和任务
+  if (mergedLogs.length > localLogs.length || JSON.stringify(mergedTasks) !== JSON.stringify(localData.tasks)) {
+    await storage.set({ ...localData, tasks: mergedTasks, logs: mergedLogs });
     return 'merged';
   }
   return 'local';
