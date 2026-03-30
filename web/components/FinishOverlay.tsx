@@ -24,14 +24,19 @@ export default function FinishOverlay({ type, forcedBreak = false, onClose }: Pr
     const data = await storage.get(['state', 'logs']) as StorageData;
     if (!data.state) return;
 
+    const now = Date.now();
+    const logs = data.logs || [];
+
+    // 去重：2 分钟内已有 actionId=8 的日志则跳过
+    const recentPomo = logs.find(log => Array.isArray(log) && log[1] === 8 && now - log[0] < 120_000);
+    if (recentPomo) { onClose(); return; }
+
     if (score === 100) {
       data.state.pomodoro.perfectCount += 1;
     }
     data.state.pomodoro.count += 1;
 
-    const logs = data.logs || [];
-    logs.unshift([Date.now(), 8, score, 0]);
-
+    logs.unshift([now, 8, score, 0]);
     await storage.set({ state: data.state, logs });
     onClose();
   };

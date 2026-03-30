@@ -118,9 +118,13 @@ function mergeState(local: AppState | undefined, cloud: AppState | undefined): A
 
   // pomodoro.running: 任一端 running=true 则保持 true
   const running = lp.running || cp.running;
-  // pomodoro.timeLeft: 只有一端 running 时用该端的 timeLeft（另一端可能是旧会话残留值）
-  // 双端都 running 时取较低值（更接近完成）
-  const timeLeft = (lp.running && cp.running) ? Math.min(lp.timeLeft, cp.timeLeft)
+  // startedAt: 取较早的（同一个番茄钟在两端的开始时间应该一致）
+  const startedAt = (lp.startedAt && cp.startedAt) ? Math.min(lp.startedAt, cp.startedAt)
+    : lp.startedAt || cp.startedAt;
+  // timeLeft: 如果有 startedAt，从 startedAt 推算；否则沿用旧逻辑
+  const timeLeft = running && startedAt
+    ? Math.max(0, 25 * 60 - (Date.now() - startedAt) / 1000)
+    : (lp.running && cp.running) ? Math.min(lp.timeLeft, cp.timeLeft)
     : lp.running ? lp.timeLeft
     : cp.running ? cp.timeLeft
     : lp.timeLeft;
@@ -135,6 +139,7 @@ function mergeState(local: AppState | undefined, cloud: AppState | undefined): A
     pomodoro: {
       running,
       timeLeft,
+      startedAt: running ? startedAt : undefined,
       count: Math.max(lp.count, cp.count),
       perfectCount: Math.max(lp.perfectCount, cp.perfectCount),
       consecutiveCount: Math.max(lp.consecutiveCount, cp.consecutiveCount),

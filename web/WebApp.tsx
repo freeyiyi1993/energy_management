@@ -74,14 +74,19 @@ export default function WebApp() {
       const d = await storage.get(['state']) as StorageData;
       if (!d.state || !d.state.pomodoro.running) return;
 
-      const elapsed = (Date.now() - d.state.lastUpdateTime) / 1000;
-      const realTimeLeft = d.state.pomodoro.timeLeft - elapsed;
+      const elapsed = d.state.pomodoro.startedAt
+        ? (Date.now() - d.state.pomodoro.startedAt) / 1000
+        : (Date.now() - d.state.lastUpdateTime) / 1000;
+      const realTimeLeft = d.state.pomodoro.startedAt
+        ? 25 * 60 - elapsed
+        : d.state.pomodoro.timeLeft - elapsed;
 
       if (realTimeLeft <= 0) {
         const newConsec = (d.state.pomodoro.consecutiveCount || 0) + 1;
         const forcedBreak = newConsec >= 3;
         d.state.pomodoro.running = false;
         d.state.pomodoro.timeLeft = 25 * 60;
+        d.state.pomodoro.startedAt = undefined;
         d.state.pomodoro.consecutiveCount = forcedBreak ? 0 : newConsec;
         d.state.lastUpdateTime = Date.now();
         await storage.set({ state: d.state });

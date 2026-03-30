@@ -140,10 +140,14 @@ async function tick() {
   state.energy -= drop;
 
   if (state.pomodoro.running) {
-    state.pomodoro.timeLeft -= 60 * minsPassed;
+    state.pomodoro.timeLeft = state.pomodoro.startedAt
+      ? Math.max(0, 25 * 60 - (now - state.pomodoro.startedAt) / 1000)
+      : state.pomodoro.timeLeft - 60 * minsPassed;
+
     if (state.pomodoro.timeLeft <= 0) {
       state.pomodoro.running = false;
       state.pomodoro.timeLeft = 25 * 60;
+      state.pomodoro.startedAt = undefined;
       state.pomodoro.consecutiveCount = (state.pomodoro.consecutiveCount || 0) + 1;
       const isForcedBreak = state.pomodoro.consecutiveCount >= 3;
       if (isForcedBreak) {

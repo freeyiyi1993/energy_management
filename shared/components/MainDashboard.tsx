@@ -42,21 +42,29 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
   if (state.energy < 20) barColor = '#ef4444';
   else if (state.energy < 40) barColor = '#f59e0b';
 
-  const elapsedSec = state.pomodoro.running ? (Date.now() - state.lastUpdateTime) / 1000 : 0;
-  const realTimeLeft = Math.max(0, state.pomodoro.timeLeft - elapsedSec);
+  const elapsedSec = state.pomodoro.running && state.pomodoro.startedAt
+    ? (Date.now() - state.pomodoro.startedAt) / 1000
+    : state.pomodoro.running ? (Date.now() - state.lastUpdateTime) / 1000 : 0;
+  const realTimeLeft = Math.max(0, 25 * 60 - elapsedSec);
   const pomoPercent = 100 - (realTimeLeft / (25 * 60)) * 100;
   const m = Math.floor(realTimeLeft / 60).toString().padStart(2, '0');
   const s = (Math.floor(realTimeLeft) % 60).toString().padStart(2, '0');
 
   const togglePomo = async () => {
-    const newState = { ...state, pomodoro: { ...state.pomodoro, running: !state.pomodoro.running }, lastUpdateTime: Date.now() };
+    const nowTs = Date.now();
+    const starting = !state.pomodoro.running;
+    const newState = {
+      ...state,
+      pomodoro: { ...state.pomodoro, running: starting, startedAt: starting ? nowTs : undefined, timeLeft: starting ? 25 * 60 : state.pomodoro.timeLeft },
+      lastUpdateTime: nowTs,
+    };
     await storage.set({ state: newState });
     onDataChange();
   };
 
   const resetPomo = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newState = { ...state, pomodoro: { ...state.pomodoro, running: false, timeLeft: 25 * 60 } };
+    const newState = { ...state, pomodoro: { ...state.pomodoro, running: false, timeLeft: 25 * 60, startedAt: undefined } };
     await storage.set({ state: newState });
     onDataChange();
   };

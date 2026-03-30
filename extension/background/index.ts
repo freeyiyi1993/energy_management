@@ -208,10 +208,17 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
 
     if (state.pomodoro.running) {
-      state.pomodoro.timeLeft -= 60 * minsPassed;
+      const elapsed = state.pomodoro.startedAt
+        ? (now - state.pomodoro.startedAt) / 1000
+        : 60 * minsPassed;
+      state.pomodoro.timeLeft = Math.max(0, state.pomodoro.startedAt
+        ? 25 * 60 - elapsed
+        : state.pomodoro.timeLeft - 60 * minsPassed);
+
       if (state.pomodoro.timeLeft <= 0) {
         state.pomodoro.running = false;
         state.pomodoro.timeLeft = 25 * 60;
+        state.pomodoro.startedAt = undefined;
 
         state.pomodoro.consecutiveCount = (state.pomodoro.consecutiveCount || 0) + 1;
         const isForcedBreak = state.pomodoro.consecutiveCount >= 3;
