@@ -26,8 +26,10 @@ export default function WebApp() {
 
   const prevRunningRef = useRef(false);
   const prevConsecutiveRef = useRef(0);
+  const syncingRef = useRef(false);
 
-  const fetchData = async () => {
+  const fetchData = async (fromSync?: boolean) => {
+    if (fromSync) syncingRef.current = true;
     const result = await storage.get(null);
     setData(result as StorageData);
   };
@@ -98,8 +100,12 @@ export default function WebApp() {
     const { pomodoro } = data.state;
 
     if (prevRunningRef.current && !pomodoro.running) {
-      const wasForcedBreak = prevConsecutiveRef.current >= 2;
-      setOverlay({ type: 'pomodoro', forcedBreak: wasForcedBreak });
+      if (syncingRef.current) {
+        syncingRef.current = false; // 跳过，这是同步引起的状态变化
+      } else {
+        const wasForcedBreak = prevConsecutiveRef.current >= 2;
+        setOverlay({ type: 'pomodoro', forcedBreak: wasForcedBreak });
+      }
     }
 
     prevRunningRef.current = pomodoro.running;
@@ -157,7 +163,7 @@ export default function WebApp() {
             )}
           </div>
 
-          <AuthPanel onSynced={fetchData} />
+          <AuthPanel onSynced={() => fetchData(true)} />
         </div>
       </div>
 
