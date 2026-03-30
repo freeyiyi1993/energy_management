@@ -151,6 +151,41 @@ npm run lint              # ESLint
 - [x] Email/Password 登录 (双端 Google + 邮箱两种方式)
 - [x] 日志合并策略 (pullAndMerge 从整体覆盖改为 timestamp+action 去重合并)
 
+## 交付质量规范
+
+基于 git log 复盘（50 commits 中 fix 占 50%），总结以下规范以减少 bug 和返工。
+
+### 规则 1: 平台 API / 第三方服务先 PoC 再编码
+- 涉及浏览器扩展 API、OAuth、Service Worker、Firestore 等平台特有能力时，**先写最小 PoC 跑通，再写正式代码**
+- PoC 验证点：API 是否可用、CSP 限制、数据格式兼容性、权限要求
+- 历史教训：OAuth 方案经历 4 次推翻重来（signInWithPopup → 独立登录页 → launchWebAuthFlow → getAuthToken）
+
+### 规则 2: feat 前先列验收用例
+- 每个 feat 开始前，列出 3-5 个关键验收 case（输入 → 期望输出），重点覆盖：
+  - 边界值（0、空、超上限）
+  - 多端差异（扩展 popup vs Web）
+  - 多账号 / 空数据场景
+- 在 commit message 或 PR 描述中体现
+- 历史教训：睡眠恢复规则连续 3 个 fix，都是边界条件没提前对齐
+
+### 规则 3: 核心逻辑必须有单测
+- 优先覆盖纯函数 / 核心计算逻辑：
+  - 精力计算（睡眠恢复、衰减、任务恢复）
+  - 数据合并（pullAndMerge 的各种场景）
+  - 序列化 / 反序列化（Firestore 兼容性）
+- 测试成本低，防回归收益高
+
+### 规则 4: 双端 UI 提交前检查
+- 涉及布局改动时，commit 前在两端各验证一次：
+  - `[ ]` 扩展 popup 320×600 下无溢出
+  - `[ ]` Web 端宽屏 / 窄屏正常
+- 历史教训：popup 尺寸和同步栏位置产生了 7 个 fix
+
+### 规则 5: 与外部服务交互要真实读写验证
+- Firestore、Chrome Storage 等外部存储，写完后跑一次真实读写再提交
+- 不要只依赖本地 mock 通过
+- 历史教训：Firestore 不支持嵌套数组，上线后才发现
+
 ## 重启后的标准起手式
 请读取 CLAUDE.md 和最近的 git log，告诉我项目当前状态，然后继续上次未完成的任务
 
