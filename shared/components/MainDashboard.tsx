@@ -205,9 +205,6 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
             精力值:{Math.floor(state.energy)} / {state.maxEnergy}
           </span>
         </div>
-        <div className="text-[11px] text-gray-400 text-right mt-1">
-          已消耗: {(state.energyConsumed || 0).toFixed(1)}
-        </div>
       </div>
 
       {/* Pomodoro */}
@@ -257,7 +254,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
       {onNavigate && (
         <div className={cardLast}>
           <button
-            className="w-full h-[34px] rounded flex items-center justify-center gap-2 text-sm font-medium text-gray-600 bg-gray-100 border border-gray-300 hover:bg-gray-200 transition-colors"
+            className="w-full h-[34px] rounded flex items-center justify-center gap-2 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
             onClick={() => onNavigate('stats')}
           >
             <BarChart2 size={16} />
