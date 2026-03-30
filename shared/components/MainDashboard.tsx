@@ -71,6 +71,11 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
     const d = await storage.get(['tasks', 'state', 'logs', 'config', 'taskDefs']) as StorageData;
     if (!d.tasks || !d.state) return;
 
+    // 二次防重：从 storage 真实读取后再检查（React state 可能因 sync 延迟而过时）
+    const storedVal = d.tasks[def.id];
+    if (!isCounter && storedVal !== null && storedVal !== false && storedVal !== undefined) return;
+    if (isCounter && (storedVal as number || 0) >= maxCount) return;
+
     const currentConfig = d.config || config;
     const oldEnergy = d.state.energy;
 
@@ -83,15 +88,11 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
 
     // 根据 healLevel 恢复精力
     if (def.id === 'sleep' && typeof val === 'number') {
-      // 睡眠恢复规则：睡眠设定精力天花板，只降不升
-      // ceiling = maxEnergy × min(sleepHours/8, 1)
-      // 睡眠不足 → ceiling 低于当前精力 → 压低；睡眠充足 → 不变
+      // 睡眠设天花板，只降不升：ceiling = maxEnergy × min(sleepHours/8, 1)
+      // 早上填：energy=maxEnergy，睡不够则压低；晚上填：energy 已低于 ceiling，无变化
       const hours = Math.min(val, 8);
-      const sleepRatio = hours / 8; // 0~1
-      const ceiling = d.state.maxEnergy * sleepRatio;
-      const consumed = d.state.energyConsumed || 0;
-      const sleepEnergy = Math.max(0, ceiling - consumed);
-      d.state.energy = Math.min(d.state.energy, sleepEnergy);
+      const ceiling = d.state.maxEnergy * (hours / 8);
+      d.state.energy = Math.min(d.state.energy, ceiling);
     } else if (def.healLevel === 'big') {
       d.state.energy = Math.min(d.state.maxEnergy, d.state.energy + d.state.maxEnergy * currentConfig.bigHealRatio);
     } else if (def.healLevel === 'mid') {
