@@ -93,8 +93,8 @@ npm run lint              # ESLint
 - **状态**: 已完成
 
 ### ADR-005: 睡眠恢复规则
-- **决策**: 睡眠设定精力天花板，只降不升。公式: `min(当前精力, max(0, maxEnergy × min(sleepHours/8, 1) - energyConsumed))`
-- **原因**: 睡眠不足应压低精力（如睡 4h 天花板 = maxEnergy × 50%）。旧公式直接设定精力值，导致晚间填低睡眠反而拉高精力
+- **决策**: 睡眠设纯天花板，只降不升。公式: `energy = min(当前精力, maxEnergy × min(sleepHours/8, 1))`
+- **原因**: 不减 energyConsumed，因为当前精力已经反映了衰减，再减等于双倍惩罚。睡眠 4h → ceiling=50% maxEnergy；早上填时压低精力，晚上填时 energy 已低于 ceiling 无变化
 - **状态**: 已实现
 
 ### ADR-006: 完美一天动态判断
