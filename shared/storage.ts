@@ -29,6 +29,10 @@ export function logsFromFirestore(logs: any[]): any[] {
 export async function syncToCloud(storage: StorageInterface, uid: string): Promise<void> {
   const data = await storage.get(null) as StorageData;
   const ref = doc(db, 'users', uid);
+  // merge:true 下 undefined 字段不会被删除，需显式转 null
+  if (data.state?.pomodoro && data.state.pomodoro.startedAt === undefined) {
+    (data.state.pomodoro as any).startedAt = null;
+  }
   const payload = {
     ...data,
     logs: data.logs ? logsToFirestore(data.logs) : [],
@@ -45,6 +49,10 @@ export async function syncFromCloud(uid: string): Promise<StorageData | null> {
   delete (cloudData as any).lastSyncAt;
   if (cloudData.logs) {
     cloudData.logs = logsFromFirestore(cloudData.logs);
+  }
+  // Firestore 的 null 还原为 undefined
+  if (cloudData.state?.pomodoro && cloudData.state.pomodoro.startedAt === null) {
+    cloudData.state.pomodoro.startedAt = undefined;
   }
   return cloudData;
 }
@@ -125,9 +133,12 @@ function mergeState(local: AppState | undefined, cloud: AppState | undefined): A
 
   // pomodoro.running: 任一端 running=true 则保持 true
   let running = lp.running || cp.running;
-  // startedAt: 取较早的（同一个番茄钟在两端的开始时间应该一致）
-  let startedAt = (lp.startedAt && cp.startedAt) ? Math.min(lp.startedAt, cp.startedAt)
-    : lp.startedAt || cp.startedAt;
+  // startedAt: 只从 running 的一方取（cloud 的 merge:true 可能残留旧值）
+  let startedAt = (lp.running && cp.running && lp.startedAt && cp.startedAt)
+    ? Math.min(lp.startedAt, cp.startedAt)
+    : lp.running ? lp.startedAt
+    : cp.running ? cp.startedAt
+    : undefined;
   // timeLeft: 如果有 startedAt，从 startedAt 推算；否则沿用旧逻辑
   let timeLeft = running && startedAt
     ? Math.max(0, 25 * 60 - (Date.now() - startedAt) / 1000)
