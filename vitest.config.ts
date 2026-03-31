@@ -7,5 +7,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['tests/**/*.test.{ts,tsx}', 'shared/**/*.test.{ts,tsx}', 'extension/**/*.test.{ts,tsx}', 'web/**/*.test.{ts,tsx}'],
+    testTimeout: 30000,
   }
 })

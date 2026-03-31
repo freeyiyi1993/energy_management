@@ -2,6 +2,7 @@ import { Menu, Play, BarChart2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { type StorageData, type CustomTaskDef, type PageType, type CompactLog, DEFAULT_TASK_DEFS } from '../types';
 import { type StorageInterface } from '../storage';
+import { calculateRecovery } from '../logic';
 
 
 interface Props {
@@ -90,16 +91,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
     }
 
     // 根据 healLevel 恢复精力（不做 clamp，忠实累加）
-    if (def.id === 'sleep' && typeof val === 'number') {
-      d.state.energy -= d.state.maxEnergy * (8 - Math.min(val, 8)) / 8;
-    } else if (def.healLevel === 'big') {
-      d.state.energy += d.state.maxEnergy * currentConfig.bigHealRatio;
-    } else if (def.healLevel === 'mid') {
-      d.state.energy += currentConfig.midHeal;
-    } else if (def.healLevel === 'small') {
-      d.state.energy += currentConfig.smallHeal;
-    }
-    // healLevel === 'none' → 不恢复精力
+    d.state.energy += calculateRecovery(def, val, currentConfig, d.state.maxEnergy);
 
     const energyDiff = d.state.energy - oldEnergy;
     if (energyDiff < 0) {

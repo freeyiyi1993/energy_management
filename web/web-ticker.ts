@@ -2,6 +2,7 @@ import { storage } from './storage';
 import { type AppState, type Tasks, type StorageData, DEFAULT_TASK_DEFS, DEFAULT_CONFIG } from '../shared/types';
 import { getLogicalDate, getLogical8AM, buildEmptyTasks } from '../shared/utils/time';
 import { DEFAULT_POMODORO, migratePomodoro } from '../shared/storage';
+import { calculateDecay, calculateMaxEnergyDelta, checkPomodoroExpired } from '../shared/logic';
 
 export async function initWebData() {
   const data = await storage.get(null) as StorageData;
@@ -92,29 +93,14 @@ async function tick() {
     }) && (state.pomoCount || 0) === 0;
 
     if (!isNoInput) {
-      const sleepVal = tasks['sleep'] as number | null;
-      const exerciseVal = tasks['exercise'] as number | null;
-      const perfectCount = state.pomoPerfectCount || 0;
-      let maxEnergyDelta = 0;
-
-      // 动态判断完美一天：基于 countsForPerfectDay 字段
-      const perfectDayDefs = taskDefs.filter(d => d.enabled && d.countsForPerfectDay);
-      const isHealthy = perfectDayDefs.every(def => {
-        const v = tasks[def.id];
-        if (def.type === 'counter') return (v as number || 0) >= (def.maxCount || 3);
-        if (def.type === 'boolean') return !!v;
-        return v !== null && v !== undefined;
-      });
-
-      if (isHealthy && perfectCount >= 4) maxEnergyDelta += config.perfectDayBonus;
-      if (perfectCount === 0 && (!exerciseVal || exerciseVal < 30) && (!sleepVal || sleepVal < 6)) maxEnergyDelta -= config.badDayPenalty;
+      const maxEnergyDelta = calculateMaxEnergyDelta(tasks, taskDefs, state.pomoCount || 0, state.pomoPerfectCount || 0, config);
 
       (stats || []).push({
         date: state.logicalDate,
         maxEnergy: state.maxEnergy,
         energyConsumed: state.energyConsumed || 0,
         pomoCount: state.pomoCount || 0,
-        perfectCount
+        perfectCount: state.pomoPerfectCount || 0
       });
 
       state.maxEnergy += maxEnergyDelta;
@@ -141,35 +127,19 @@ async function tick() {
   const minsPassed = (now - state.lastUpdateTime) / 60000;
   state.lastUpdateTime = now;
 
-  let decayRate = config.decayRate / 60;
   const currentHour = new Date().getHours();
   const mealsCount = tasks['meals'] as number || 0;
-  const missedMeals =
-    (currentHour >= 10 && mealsCount < 1) ||
-    (currentHour >= 14 && mealsCount < 2) ||
-    (currentHour >= 19 && mealsCount < 3);
-  if (missedMeals) decayRate *= config.penaltyMultiplier;
-
-  const drop = decayRate * minsPassed;
+  const drop = calculateDecay(config, mealsCount, currentHour, minsPassed);
   state.energyConsumed = (state.energyConsumed || 0) + drop;
   state.energy -= drop;
 
-  if (state.pomodoro.status === 'ongoing') {
-    const timeLeft = state.pomodoro.startedAt
-      ? Math.max(0, 25 * 60 - (now - state.pomodoro.startedAt) / 1000)
-      : 0;
-
-    if (timeLeft <= 0) {
-      state.pomodoro.status = 'idle';
-      state.pomodoro.startedAt = undefined;
-      state.pomodoro.updatedAt = now;
-      state.pomodoro.consecutiveCount = (state.pomodoro.consecutiveCount || 0) + 1;
-      const isForcedBreak = state.pomodoro.consecutiveCount >= 3;
-      if (isForcedBreak) {
-        state.pomodoro.consecutiveCount = 0;
-      }
-      if (pomodoroCompleteCallback) pomodoroCompleteCallback(isForcedBreak);
-    }
+  const pomoResult = checkPomodoroExpired(state.pomodoro, now);
+  if (pomoResult.expired) {
+    state.pomodoro.status = 'idle';
+    state.pomodoro.startedAt = undefined;
+    state.pomodoro.updatedAt = now;
+    state.pomodoro.consecutiveCount = pomoResult.newConsecutiveCount;
+    if (pomodoroCompleteCallback) pomodoroCompleteCallback(pomoResult.isForcedBreak);
   }
 
   // 低精力提醒检测

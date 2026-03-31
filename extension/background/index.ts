@@ -1,6 +1,7 @@
 import { type AppState, type Tasks, type StorageData, DEFAULT_TASK_DEFS, DEFAULT_CONFIG } from '../../shared/types';
 import { getLogicalDate, getLogical8AM, buildEmptyTasks } from '../../shared/utils/time';
 import { DEFAULT_POMODORO, migratePomodoro } from '../../shared/storage';
+import { calculateDecay, calculateMaxEnergyDelta, checkPomodoroExpired } from '../../shared/logic';
 
 async function initData() {
   const data = (await chrome.storage.local.get(null)) as StorageData;
@@ -73,19 +74,6 @@ async function handleDayRollover(data: StorageData, todayStr: string) {
   const { state, tasks, stats } = data as { state: AppState, tasks: Tasks, stats: any[] };
   const config = data.config || DEFAULT_CONFIG;
   const taskDefs = data.taskDefs || DEFAULT_TASK_DEFS;
-  let maxEnergyDelta = 0;
-
-  const sleepVal = tasks['sleep'] as number | null;
-  const exerciseVal = tasks['exercise'] as number | null;
-
-  // 动态判断完美一天：基于 countsForPerfectDay 字段
-  const perfectDayDefs = taskDefs.filter(d => d.enabled && d.countsForPerfectDay);
-  const isHealthyTasksDone = perfectDayDefs.every(def => {
-    const v = tasks[def.id];
-    if (def.type === 'counter') return (v as number || 0) >= (def.maxCount || 3);
-    if (def.type === 'boolean') return !!v;
-    return v !== null && v !== undefined;
-  });
 
   const pomoCount = state.pomoCount || 0;
   const perfectCount = state.pomoPerfectCount || 0;
@@ -112,13 +100,7 @@ async function handleDayRollover(data: StorageData, todayStr: string) {
     return;
   }
 
-  if (isHealthyTasksDone && perfectCount >= 4) {
-    maxEnergyDelta += config.perfectDayBonus;
-  }
-
-  if (perfectCount === 0 && (!exerciseVal || exerciseVal < 30) && (!sleepVal || sleepVal < 6)) {
-    maxEnergyDelta -= config.badDayPenalty;
-  }
+  const maxEnergyDelta = calculateMaxEnergyDelta(tasks, taskDefs, pomoCount, perfectCount, config);
 
   const yesterdayDate = state.logicalDate;
   stats.push({
@@ -197,20 +179,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const minsPassed = (now - state.lastUpdateTime) / 60000;
     state.lastUpdateTime = now;
 
-    let decayRate = config.decayRate / 60;
     const currentHour = new Date().getHours();
-
     const mealsCount = tasks['meals'] as number || 0;
-    const missedMeals =
-      (currentHour >= 10 && mealsCount < 1) ||
-      (currentHour >= 14 && mealsCount < 2) ||
-      (currentHour >= 19 && mealsCount < 3);
-
-    if (missedMeals) {
-      decayRate *= config.penaltyMultiplier;
-    }
-
-    const drop = decayRate * minsPassed;
+    const drop = calculateDecay(config, mealsCount, currentHour, minsPassed);
     state.energyConsumed = (state.energyConsumed || 0) + drop;
     state.energy -= drop;
 
@@ -219,25 +190,14 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       chrome.tabs.create({ url: chrome.runtime.getURL("extension/pages/finish/finish.html?type=energy") });
     }
 
-    if (state.pomodoro.status === 'ongoing') {
-      const timeLeft = state.pomodoro.startedAt
-        ? Math.max(0, 25 * 60 - (now - state.pomodoro.startedAt) / 1000)
-        : 0;
+    const pomoResult = checkPomodoroExpired(state.pomodoro, now);
+    if (pomoResult.expired) {
+      state.pomodoro.status = 'idle';
+      state.pomodoro.startedAt = undefined;
+      state.pomodoro.updatedAt = now;
+      state.pomodoro.consecutiveCount = pomoResult.newConsecutiveCount;
 
-      if (timeLeft <= 0) {
-        state.pomodoro.status = 'idle';
-        state.pomodoro.startedAt = undefined;
-        state.pomodoro.updatedAt = now;
-
-        state.pomodoro.consecutiveCount = (state.pomodoro.consecutiveCount || 0) + 1;
-        const isForcedBreak = state.pomodoro.consecutiveCount >= 3;
-
-        chrome.tabs.create({ url: chrome.runtime.getURL(`extension/pages/finish/finish.html?type=pomodoro&forcedBreak=${isForcedBreak}`) });
-
-        if (isForcedBreak) {
-          state.pomodoro.consecutiveCount = 0;
-        }
-      }
+      chrome.tabs.create({ url: chrome.runtime.getURL(`extension/pages/finish/finish.html?type=pomodoro&forcedBreak=${pomoResult.isForcedBreak}`) });
     }
 
     await chrome.storage.local.set({ state });

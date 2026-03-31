@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { parseTimeStr } from '../shared/utils/time';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { parseTimeStr, getLogicalDate, getLogical8AM, buildEmptyTasks } from '../shared/utils/time';
+import { DEFAULT_TASK_DEFS } from '../shared/types';
 
 describe('parseTimeStr', () => {
   it('should handle null correctly', () => {
@@ -41,5 +42,57 @@ describe('parseTimeStr', () => {
     for (let i = 1; i <= 11; i++) {
       expect(parseTimeStr(`${i} PM`)).toBe(i + 12);
     }
+  });
+});
+
+describe('getLogicalDate', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('after 8AM: returns today', () => {
+    vi.setSystemTime(new Date('2026-03-31T12:00:00'));
+    expect(getLogicalDate()).toBe('2026-03-31');
+  });
+
+  it('before 8AM: returns yesterday', () => {
+    vi.setSystemTime(new Date('2026-03-31T07:59:00'));
+    expect(getLogicalDate()).toBe('2026-03-30');
+  });
+
+  it('exactly 8AM: returns today', () => {
+    vi.setSystemTime(new Date('2026-03-31T08:00:00'));
+    expect(getLogicalDate()).toBe('2026-03-31');
+  });
+});
+
+describe('getLogical8AM', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('after 8AM: returns today 8AM', () => {
+    vi.setSystemTime(new Date('2026-03-31T12:00:00'));
+    const expected = new Date('2026-03-31T08:00:00').getTime();
+    expect(getLogical8AM()).toBe(expected);
+  });
+
+  it('before 8AM: returns yesterday 8AM', () => {
+    vi.setSystemTime(new Date('2026-03-31T05:00:00'));
+    const expected = new Date('2026-03-30T08:00:00').getTime();
+    expect(getLogical8AM()).toBe(expected);
+  });
+});
+
+describe('buildEmptyTasks', () => {
+  it('creates correct default values per type', () => {
+    const tasks = buildEmptyTasks(DEFAULT_TASK_DEFS);
+    expect(tasks['sleep']).toBeNull();        // number type
+    expect(tasks['meals']).toBe(0);           // counter type
+    expect(tasks['nap']).toBe(false);         // boolean type
+  });
+
+  it('skips disabled tasks', () => {
+    const defs = DEFAULT_TASK_DEFS.map(d => d.id === 'poop' ? { ...d, enabled: false } : d);
+    const tasks = buildEmptyTasks(defs);
+    expect('poop' in tasks).toBe(false);
   });
 });

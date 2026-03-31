@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { storage } from './storage';
 import { initWebData, startWebTicker, stopWebTicker, setLowEnergyCallback, setPomodoroCompleteCallback } from './web-ticker';
 import { type StorageData } from '../shared/types';
+import { checkPomodoroExpired } from '../shared/logic';
 import MainDashboard from '../shared/components/MainDashboard';
 import RulesPage from '../shared/components/RulesPage';
 import StatsPage from '../shared/components/StatsPage';
@@ -73,22 +74,17 @@ export default function WebApp() {
       const d = await storage.get(['state']) as StorageData;
       if (!d.state || d.state.pomodoro.status !== 'ongoing') return;
 
-      if (!d.state.pomodoro.startedAt) return;
-      const elapsed = (Date.now() - d.state.pomodoro.startedAt) / 1000;
-      const realTimeLeft = 25 * 60 - elapsed;
-
-      if (realTimeLeft <= 0) {
-        const now = Date.now();
-        const newConsec = (d.state.pomodoro.consecutiveCount || 0) + 1;
-        const forcedBreak = newConsec >= 3;
+      const now = Date.now();
+      const result = checkPomodoroExpired(d.state.pomodoro, now);
+      if (result.expired) {
         d.state.pomodoro.status = 'idle';
         d.state.pomodoro.startedAt = undefined;
         d.state.pomodoro.updatedAt = now;
-        d.state.pomodoro.consecutiveCount = forcedBreak ? 0 : newConsec;
+        d.state.pomodoro.consecutiveCount = result.newConsecutiveCount;
         d.state.lastUpdateTime = now;
         await storage.set({ state: d.state });
         fetchData();
-        setOverlay(prev => prev ?? { type: 'pomodoro', forcedBreak });
+        setOverlay(prev => prev ?? { type: 'pomodoro', forcedBreak: result.isForcedBreak });
       }
     };
 
