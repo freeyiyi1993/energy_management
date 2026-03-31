@@ -124,17 +124,24 @@ function mergeState(local: AppState | undefined, cloud: AppState | undefined): A
   const cp = cloud.pomodoro;
 
   // pomodoro.running: 任一端 running=true 则保持 true
-  const running = lp.running || cp.running;
+  let running = lp.running || cp.running;
   // startedAt: 取较早的（同一个番茄钟在两端的开始时间应该一致）
-  const startedAt = (lp.startedAt && cp.startedAt) ? Math.min(lp.startedAt, cp.startedAt)
+  let startedAt = (lp.startedAt && cp.startedAt) ? Math.min(lp.startedAt, cp.startedAt)
     : lp.startedAt || cp.startedAt;
   // timeLeft: 如果有 startedAt，从 startedAt 推算；否则沿用旧逻辑
-  const timeLeft = running && startedAt
+  let timeLeft = running && startedAt
     ? Math.max(0, 25 * 60 - (Date.now() - startedAt) / 1000)
     : (lp.running && cp.running) ? Math.min(lp.timeLeft, cp.timeLeft)
     : lp.running ? lp.timeLeft
     : cp.running ? cp.timeLeft
     : lp.timeLeft;
+
+  // 番茄钟已过期（另一端已完成但云端未同步）：不复活，count 已通过 Math.max 保留
+  if (running && timeLeft <= 0) {
+    running = false;
+    timeLeft = 25 * 60;
+    startedAt = undefined;
+  }
 
   return {
     energy: Math.min(local.energy, cloud.energy),
