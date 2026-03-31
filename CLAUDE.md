@@ -34,14 +34,20 @@ web/                           # Web 端
 └── components/AuthPanel.tsx   #   登录面板
 
 shared/                        # 双端共享
-├── types/index.ts             #   TypeScript 类型定义
+├── types/index.ts             #   TypeScript 类型定义 (PomodoroTimer, AppState 等)
 ├── firebase.ts                #   Firebase 初始化
-├── storage.ts                 #   StorageInterface 抽象
+├── storage.ts                 #   StorageInterface 抽象 + 双向同步 + 迁移
+├── logic.ts                   #   核心纯函数 (衰减/恢复/番茄完成/完美一天/日切)
 ├── utils/time.ts              #   时间工具
 ├── components/                #   MainDashboard, StatsPage, RulesPage, SettingsPage, MenuPanel
 └── public/                    #   共享静态资源
 
-tests/                         # 测试
+tests/                         # 测试 (76 case)
+├── logic.test.ts              #   核心逻辑单测 (29 case)
+├── storage.test.ts            #   同步合并/迁移/Firestore 转换 (16 case)
+├── utils.test.ts              #   时间工具 (13 case)
+├── types.test.ts              #   类型结构验证 (8 case)
+└── web_ui.test.ts             #   Puppeteer UI 自动化 (6 case)
 docs/                          # 项目文档
 dist/                          # Chrome 扩展构建产物
 dist-web/                      # Web 版构建产物
@@ -53,8 +59,7 @@ dist-web/                      # Web 版构建产物
 npm run build             # 构建 Chrome 扩展到 dist/
 npm run build:web         # 构建 Web 版到 dist-web/
 npm run dev:web           # Web 版开发服务器 (port 3000)
-npm run test              # 单元测试 (Vitest)
-npm run test:ui           # UI 测试 (Puppeteer, 需先 build)
+npm run test              # 单元测试 + Puppeteer UI 测试 (76 case)
 npm run lint              # ESLint
 ```
 
@@ -172,6 +177,9 @@ npm run lint              # ESLint
 - [x] 主页今日日志流 (数据统计按钮下方显示当日操作记录)
 - [x] 删除所有数据 (dataResetAt 时间戳软删除，跨设备生效)
 - [x] 番茄钟原子实例同步 (PomodoroTimer + updatedAt 整体覆盖，count 拆到 AppState)
+- [x] 番茄钟重置按钮移除 (点击即 toggle 开始/停止)
+- [x] 核心逻辑提取 shared/logic.ts (5 个纯函数)
+- [x] 测试覆盖 23→76 case (逻辑/同步/时间/类型/Puppeteer UI)
 
 ## 交付质量规范
 
