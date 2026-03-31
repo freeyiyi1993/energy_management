@@ -1,6 +1,7 @@
 import { storage } from './storage';
 import { type AppState, type Tasks, type StorageData, DEFAULT_TASK_DEFS, DEFAULT_CONFIG } from '../shared/types';
 import { getLogicalDate, getLogical8AM, buildEmptyTasks } from '../shared/utils/time';
+import { DEFAULT_POMODORO, migratePomodoro } from '../shared/storage';
 
 export async function initWebData() {
   const data = await storage.get(null) as StorageData;
@@ -47,18 +48,32 @@ export async function initWebData() {
         lastUpdateTime: now,
         lowEnergyReminded: false,
         energyConsumed: 0,
-        pomodoro: { running: false, timeLeft: 25 * 60, count: 0, perfectCount: 0, consecutiveCount: 0 }
+        pomodoro: { ...DEFAULT_POMODORO, updatedAt: now },
+        pomoCount: 0,
+        pomoPerfectCount: 0,
       },
       tasks: buildEmptyTasks(taskDefs),
       stats: [],
       logs: []
     });
+  } else {
+    // 旧格式迁移
+    migratePomodoro(data.state);
+    if (!('status' in data.state.pomodoro)) {
+      // migratePomodoro 已修改 data.state，写回
+    }
+    if (data.state.pomoCount === undefined) {
+      await storage.set({ state: data.state });
+    }
   }
 }
 
 async function tick() {
   const data = await storage.get(null) as StorageData;
   if (!data.state) return;
+
+  // 旧格式迁移
+  migratePomodoro(data.state);
 
   const todayStr = getLogicalDate();
   const taskDefs = data.taskDefs || DEFAULT_TASK_DEFS;
@@ -74,12 +89,12 @@ async function tick() {
       if (def.type === 'counter') return (v as number || 0) === 0;
       if (def.type === 'boolean') return !v;
       return v === null || v === undefined;
-    }) && state.pomodoro.count === 0;
+    }) && (state.pomoCount || 0) === 0;
 
     if (!isNoInput) {
       const sleepVal = tasks['sleep'] as number | null;
       const exerciseVal = tasks['exercise'] as number | null;
-      const perfectCount = state.pomodoro.perfectCount;
+      const perfectCount = state.pomoPerfectCount || 0;
       let maxEnergyDelta = 0;
 
       // 动态判断完美一天：基于 countsForPerfectDay 字段
@@ -98,7 +113,7 @@ async function tick() {
         date: state.logicalDate,
         maxEnergy: state.maxEnergy,
         energyConsumed: state.energyConsumed || 0,
-        pomoCount: state.pomodoro.count,
+        pomoCount: state.pomoCount || 0,
         perfectCount
       });
 
@@ -110,8 +125,8 @@ async function tick() {
     data.state.energyConsumed = 0;
     data.state.lastUpdateTime = Date.now();
     data.state.lowEnergyReminded = false;
-    data.state.pomodoro.count = 0;
-    data.state.pomodoro.perfectCount = 0;
+    data.state.pomoCount = 0;
+    data.state.pomoPerfectCount = 0;
     data.state.pomodoro.consecutiveCount = 0;
 
     await storage.set({ state: data.state, tasks: buildEmptyTasks(taskDefs), stats: data.stats });
@@ -139,15 +154,15 @@ async function tick() {
   state.energyConsumed = (state.energyConsumed || 0) + drop;
   state.energy -= drop;
 
-  if (state.pomodoro.running) {
-    state.pomodoro.timeLeft = state.pomodoro.startedAt
+  if (state.pomodoro.status === 'ongoing') {
+    const timeLeft = state.pomodoro.startedAt
       ? Math.max(0, 25 * 60 - (now - state.pomodoro.startedAt) / 1000)
-      : state.pomodoro.timeLeft - 60 * minsPassed;
+      : 0;
 
-    if (state.pomodoro.timeLeft <= 0) {
-      state.pomodoro.running = false;
-      state.pomodoro.timeLeft = 25 * 60;
+    if (timeLeft <= 0) {
+      state.pomodoro.status = 'idle';
       state.pomodoro.startedAt = undefined;
+      state.pomodoro.updatedAt = now;
       state.pomodoro.consecutiveCount = (state.pomodoro.consecutiveCount || 0) + 1;
       const isForcedBreak = state.pomodoro.consecutiveCount >= 3;
       if (isForcedBreak) {

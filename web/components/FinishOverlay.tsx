@@ -32,9 +32,9 @@ export default function FinishOverlay({ type, forcedBreak = false, onClose }: Pr
     if (recentPomo) { onClose(); return; }
 
     if (score === 100) {
-      data.state.pomodoro.perfectCount += 1;
+      data.state.pomoPerfectCount = (data.state.pomoPerfectCount || 0) + 1;
     }
-    data.state.pomodoro.count += 1;
+    data.state.pomoCount = (data.state.pomoCount || 0) + 1;
 
     logs.unshift([now, 8, score, 0]);
     await storage.set({ state: data.state, logs });

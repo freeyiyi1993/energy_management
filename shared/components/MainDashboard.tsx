@@ -42,9 +42,10 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
   if (state.energy < 20) barColor = '#ef4444';
   else if (state.energy < 40) barColor = '#f59e0b';
 
-  const elapsedSec = state.pomodoro.running && state.pomodoro.startedAt
+  const isOngoing = state.pomodoro.status === 'ongoing';
+  const elapsedSec = isOngoing && state.pomodoro.startedAt
     ? (Date.now() - state.pomodoro.startedAt) / 1000
-    : state.pomodoro.running ? (Date.now() - state.lastUpdateTime) / 1000 : 0;
+    : isOngoing ? (Date.now() - state.lastUpdateTime) / 1000 : 0;
   const realTimeLeft = Math.max(0, 25 * 60 - elapsedSec);
   const pomoPercent = 100 - (realTimeLeft / (25 * 60)) * 100;
   const m = Math.floor(realTimeLeft / 60).toString().padStart(2, '0');
@@ -52,10 +53,10 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
 
   const togglePomo = async () => {
     const nowTs = Date.now();
-    const starting = !state.pomodoro.running;
+    const starting = !isOngoing;
     const newState = {
       ...state,
-      pomodoro: { ...state.pomodoro, running: starting, startedAt: starting ? nowTs : undefined, timeLeft: starting ? 25 * 60 : state.pomodoro.timeLeft },
+      pomodoro: { ...state.pomodoro, status: starting ? 'ongoing' as const : 'idle' as const, startedAt: starting ? nowTs : undefined, updatedAt: nowTs },
       lastUpdateTime: nowTs,
     };
     await storage.set({ state: newState });
@@ -64,7 +65,8 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
 
   const resetPomo = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newState = { ...state, pomodoro: { ...state.pomodoro, running: false, timeLeft: 25 * 60, startedAt: undefined } };
+    const nowTs = Date.now();
+    const newState = { ...state, pomodoro: { ...state.pomodoro, status: 'idle' as const, startedAt: undefined, updatedAt: nowTs } };
     await storage.set({ state: newState });
     onDataChange();
   };
@@ -230,14 +232,14 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
             onClick={togglePomo}
           >
             <div className={`${compact ? 'w-[96px] h-[96px]' : 'w-[124px] h-[124px]'} bg-white rounded-full flex flex-col items-center justify-center relative`}>
-              <div className={`${compact ? 'text-2xl' : 'text-4xl'} font-bold transition-colors ${state.pomodoro.running ? 'text-emerald-500' : 'text-gray-300'}`}>
+              <div className={`${compact ? 'text-2xl' : 'text-4xl'} font-bold transition-colors ${isOngoing ? 'text-emerald-500' : 'text-gray-300'}`}>
                 {m}:{s}
               </div>
               <div className="text-[10px] text-gray-400 mt-1">
-                总: {state.pomodoro.count} | 完美: {state.pomodoro.perfectCount}
+                总: {state.pomoCount || 0} | 完美: {state.pomoPerfectCount || 0}
               </div>
 
-              {!state.pomodoro.running && (
+              {!isOngoing && (
                 <div className="absolute inset-0 bg-white/85 rounded-full flex items-center justify-center text-emerald-500">
                   <Play size={compact ? 28 : 36} fill="currentColor" />
                 </div>

@@ -10,13 +10,11 @@ export interface Config {
   badDayPenalty: number;
 }
 
-export interface PomodoroState {
-  running: boolean;
-  timeLeft: number;
-  startedAt?: number;        // 番茄钟开始的绝对时间戳，用于跨设备同步
-  count: number;
-  perfectCount: number;
-  consecutiveCount: number;
+export interface PomodoroTimer {
+  status: 'ongoing' | 'idle';
+  startedAt?: number;        // ongoing 时有值，用于跨设备同步
+  updatedAt: number;         // 每次状态变更（开始/停止/重置/完成）更新，合并时取大
+  consecutiveCount: number;  // 强制休息计数，跟随 timer 原子同步
 }
 
 export interface AppState {
@@ -26,7 +24,9 @@ export interface AppState {
   lastUpdateTime: number;
   lowEnergyReminded: boolean;
   energyConsumed?: number;
-  pomodoro: PomodoroState;
+  pomodoro: PomodoroTimer;
+  pomoCount: number;
+  pomoPerfectCount: number;
 }
 
 // Tasks 使用动态 key 以支持自定义打卡事项

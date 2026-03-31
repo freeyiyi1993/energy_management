@@ -1,12 +1,39 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { type StorageData, type AppLogEntry, type Tasks, type AppState, DEFAULT_CONFIG, DEFAULT_TASK_DEFS } from './types';
+import { type StorageData, type AppLogEntry, type Tasks, type AppState, type PomodoroTimer, DEFAULT_CONFIG, DEFAULT_TASK_DEFS } from './types';
 import { getLogicalDate, getLogical8AM, buildEmptyTasks } from './utils/time';
 
 // 统一存储接口：各平台（Chrome 扩展 / Web）各自实现
 export interface StorageInterface {
   get(keys: string[] | null): Promise<Partial<StorageData>>;
   set(data: Partial<StorageData>): Promise<void>;
+}
+
+// --- 番茄钟默认值 ---
+
+export const DEFAULT_POMODORO: PomodoroTimer = {
+  status: 'idle',
+  updatedAt: 0,
+  consecutiveCount: 0,
+};
+
+// --- 旧格式迁移 ---
+
+/** 检测并迁移旧版 PomodoroState → PomodoroTimer，count/perfectCount 拆到 AppState */
+export function migratePomodoro(state: any): void {
+  if (!state?.pomodoro) return;
+  const p = state.pomodoro;
+  // 已是新格式
+  if ('status' in p) return;
+  // 旧格式：有 running 字段
+  state.pomodoro = {
+    status: p.running ? 'ongoing' : 'idle',
+    startedAt: p.startedAt ?? undefined,
+    updatedAt: state.lastUpdateTime || Date.now(),
+    consecutiveCount: p.consecutiveCount || 0,
+  } as PomodoroTimer;
+  state.pomoCount = state.pomoCount ?? p.count ?? 0;
+  state.pomoPerfectCount = state.pomoPerfectCount ?? p.perfectCount ?? 0;
 }
 
 // --- Firestore 日志转换 ---
@@ -51,9 +78,11 @@ export async function syncFromCloud(uid: string): Promise<StorageData | null> {
     cloudData.logs = logsFromFirestore(cloudData.logs);
   }
   // Firestore 的 null 还原为 undefined
-  if (cloudData.state?.pomodoro && cloudData.state.pomodoro.startedAt === null) {
+  if (cloudData.state?.pomodoro && (cloudData.state.pomodoro as any).startedAt === null) {
     cloudData.state.pomodoro.startedAt = undefined;
   }
+  // 旧格式迁移
+  migratePomodoro(cloudData.state);
   return cloudData;
 }
 
@@ -115,44 +144,22 @@ function mergeTasks(local: Tasks | undefined, cloud: Tasks | undefined): Tasks {
   return merged;
 }
 
-/** 合并 state：各字段分别取合理值，不再整体按 lastUpdateTime 取一方 */
+/** 合并 state：pomodoro 按 updatedAt 原子覆盖，count 类用 Math.max */
 function mergeState(local: AppState | undefined, cloud: AppState | undefined): AppState | undefined {
   if (!local && !cloud) return undefined;
   if (!local) return cloud;
   if (!cloud) return local;
 
   // 跨日合并：一端已日切、另一端未日切时，直接取已日切一方的 state
-  // 否则 Math.min(energy) 会把满精力拉到昨天的低精力
   if (local.logicalDate !== cloud.logicalDate) {
     const newer = local.logicalDate > cloud.logicalDate ? local : cloud;
     return { ...newer, lastUpdateTime: Date.now() };
   }
 
-  const lp = local.pomodoro;
-  const cp = cloud.pomodoro;
-
-  // pomodoro.running: 任一端 running=true 则保持 true
-  let running = lp.running || cp.running;
-  // startedAt: 只从 running 的一方取（cloud 的 merge:true 可能残留旧值）
-  let startedAt = (lp.running && cp.running && lp.startedAt && cp.startedAt)
-    ? Math.min(lp.startedAt, cp.startedAt)
-    : lp.running ? lp.startedAt
-    : cp.running ? cp.startedAt
-    : undefined;
-  // timeLeft: 如果有 startedAt，从 startedAt 推算；否则沿用旧逻辑
-  let timeLeft = running && startedAt
-    ? Math.max(0, 25 * 60 - (Date.now() - startedAt) / 1000)
-    : (lp.running && cp.running) ? Math.min(lp.timeLeft, cp.timeLeft)
-    : lp.running ? lp.timeLeft
-    : cp.running ? cp.timeLeft
-    : lp.timeLeft;
-
-  // 番茄钟已过期（另一端已完成但云端未同步）：不复活，count 已通过 Math.max 保留
-  if (running && timeLeft <= 0) {
-    running = false;
-    timeLeft = 25 * 60;
-    startedAt = undefined;
-  }
+  // pomodoro: 取 updatedAt 更大的一方整体覆盖
+  const pomodoro = local.pomodoro.updatedAt >= cloud.pomodoro.updatedAt
+    ? local.pomodoro
+    : cloud.pomodoro;
 
   return {
     energy: Math.min(local.energy, cloud.energy),
@@ -161,14 +168,9 @@ function mergeState(local: AppState | undefined, cloud: AppState | undefined): A
     logicalDate: local.logicalDate,
     lowEnergyReminded: local.lowEnergyReminded || cloud.lowEnergyReminded,
     lastUpdateTime: Date.now(),
-    pomodoro: {
-      running,
-      timeLeft,
-      startedAt: running ? startedAt : undefined,
-      count: Math.max(lp.count, cp.count),
-      perfectCount: Math.max(lp.perfectCount, cp.perfectCount),
-      consecutiveCount: Math.max(lp.consecutiveCount, cp.consecutiveCount),
-    },
+    pomodoro,
+    pomoCount: Math.max(local.pomoCount || 0, cloud.pomoCount || 0),
+    pomoPerfectCount: Math.max(local.pomoPerfectCount || 0, cloud.pomoPerfectCount || 0),
   };
 }
 
@@ -195,7 +197,9 @@ export async function resetAllData(storage: StorageInterface, uid?: string): Pro
       lastUpdateTime: now,
       lowEnergyReminded: false,
       energyConsumed: 0,
-      pomodoro: { running: false, timeLeft: 25 * 60, count: 0, perfectCount: 0, consecutiveCount: 0 },
+      pomodoro: { ...DEFAULT_POMODORO, updatedAt: now },
+      pomoCount: 0,
+      pomoPerfectCount: 0,
     },
     tasks: buildEmptyTasks(taskDefs),
     logs: [],

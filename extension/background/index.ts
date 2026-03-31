@@ -1,5 +1,6 @@
 import { type AppState, type Tasks, type StorageData, DEFAULT_TASK_DEFS, DEFAULT_CONFIG } from '../../shared/types';
 import { getLogicalDate, getLogical8AM, buildEmptyTasks } from '../../shared/utils/time';
+import { DEFAULT_POMODORO, migratePomodoro } from '../../shared/storage';
 
 async function initData() {
   const data = (await chrome.storage.local.get(null)) as StorageData;
@@ -50,12 +51,20 @@ async function initData() {
         lastUpdateTime: now,
         lowEnergyReminded: false,
         energyConsumed: 0,
-        pomodoro: { running: false, timeLeft: 25 * 60, count: 0, perfectCount: 0, consecutiveCount: 0 }
+        pomodoro: { ...DEFAULT_POMODORO, updatedAt: now },
+        pomoCount: 0,
+        pomoPerfectCount: 0,
       },
       tasks: buildEmptyTasks(taskDefs),
       stats: [],
       logs: []
     });
+  } else {
+    // 旧格式迁移
+    migratePomodoro(data.state);
+    if (data.state.pomoCount === undefined) {
+      await chrome.storage.local.set({ state: data.state });
+    }
   }
   chrome.alarms.create("tick", { periodInMinutes: 1 });
 }
@@ -78,8 +87,8 @@ async function handleDayRollover(data: StorageData, todayStr: string) {
     return v !== null && v !== undefined;
   });
 
-  const pomoCount = state.pomodoro.count;
-  const perfectCount = state.pomodoro.perfectCount;
+  const pomoCount = state.pomoCount || 0;
+  const perfectCount = state.pomoPerfectCount || 0;
 
   const enabledDefs = taskDefs.filter(d => d.enabled);
   const isNoInput = enabledDefs.every(def => {
@@ -95,8 +104,8 @@ async function handleDayRollover(data: StorageData, todayStr: string) {
     state.energyConsumed = 0;
     state.lastUpdateTime = Date.now();
     state.lowEnergyReminded = false;
-    state.pomodoro.count = 0;
-    state.pomodoro.perfectCount = 0;
+    state.pomoCount = 0;
+    state.pomoPerfectCount = 0;
     state.pomodoro.consecutiveCount = 0;
 
     await chrome.storage.local.set({ state, tasks: buildEmptyTasks(taskDefs) });
@@ -127,8 +136,8 @@ async function handleDayRollover(data: StorageData, todayStr: string) {
   state.energyConsumed = 0;
   state.lastUpdateTime = Date.now();
   state.lowEnergyReminded = false;
-  state.pomodoro.count = 0;
-  state.pomodoro.perfectCount = 0;
+  state.pomoCount = 0;
+  state.pomoPerfectCount = 0;
   state.pomodoro.consecutiveCount = 0;
 
   await chrome.storage.local.set({ state, tasks: buildEmptyTasks(taskDefs), stats });
@@ -173,6 +182,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const data = (await chrome.storage.local.get(null)) as StorageData;
     if (!data.state) return;
 
+    // 旧格式迁移
+    migratePomodoro(data.state);
+
     const todayStr = getLogicalDate();
     if (data.state.logicalDate !== todayStr) {
       await handleDayRollover(data, todayStr);
@@ -207,18 +219,15 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
       chrome.tabs.create({ url: chrome.runtime.getURL("extension/pages/finish/finish.html?type=energy") });
     }
 
-    if (state.pomodoro.running) {
-      const elapsed = state.pomodoro.startedAt
-        ? (now - state.pomodoro.startedAt) / 1000
-        : 60 * minsPassed;
-      state.pomodoro.timeLeft = Math.max(0, state.pomodoro.startedAt
-        ? 25 * 60 - elapsed
-        : state.pomodoro.timeLeft - 60 * minsPassed);
+    if (state.pomodoro.status === 'ongoing') {
+      const timeLeft = state.pomodoro.startedAt
+        ? Math.max(0, 25 * 60 - (now - state.pomodoro.startedAt) / 1000)
+        : 0;
 
-      if (state.pomodoro.timeLeft <= 0) {
-        state.pomodoro.running = false;
-        state.pomodoro.timeLeft = 25 * 60;
+      if (timeLeft <= 0) {
+        state.pomodoro.status = 'idle';
         state.pomodoro.startedAt = undefined;
+        state.pomodoro.updatedAt = now;
 
         state.pomodoro.consecutiveCount = (state.pomodoro.consecutiveCount || 0) + 1;
         const isForcedBreak = state.pomodoro.consecutiveCount >= 3;

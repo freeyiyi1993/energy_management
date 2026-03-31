@@ -34,8 +34,8 @@ export default function StatsPage({ data, onBack }: Props) {
     const recentStats = stats.slice(-6);
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
 
-    const todayPomoCount = data.state ? data.state.pomodoro.count : 0;
-    const todayPerfectCount = data.state ? data.state.pomodoro.perfectCount : 0;
+    const todayPomoCount = data.state ? (data.state.pomoCount || 0) : 0;
+    const todayPerfectCount = data.state ? (data.state.pomoPerfectCount || 0) : 0;
     const todayEnergyConsumed = data.state ? (data.state.energyConsumed || 0) : 0;
     const todayMaxEnergy = data.state ? data.state.maxEnergy : 0;
 

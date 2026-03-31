@@ -66,29 +66,26 @@ export default function WebApp() {
   }, [currentPage]);
 
   // 客户端检测番茄钟时间到（不等 60s ticker）
-  // 直接设置 overlay，不再通过 running 变化间接检测（避免刷新时误触发）
   useEffect(() => {
-    if (!data?.state?.pomodoro.running) return;
+    if (data?.state?.pomodoro.status !== 'ongoing') return;
 
     const checkCompletion = async () => {
       const d = await storage.get(['state']) as StorageData;
-      if (!d.state || !d.state.pomodoro.running) return;
+      if (!d.state || d.state.pomodoro.status !== 'ongoing') return;
 
-      const elapsed = d.state.pomodoro.startedAt
-        ? (Date.now() - d.state.pomodoro.startedAt) / 1000
-        : (Date.now() - d.state.lastUpdateTime) / 1000;
-      const realTimeLeft = d.state.pomodoro.startedAt
-        ? 25 * 60 - elapsed
-        : d.state.pomodoro.timeLeft - elapsed;
+      if (!d.state.pomodoro.startedAt) return;
+      const elapsed = (Date.now() - d.state.pomodoro.startedAt) / 1000;
+      const realTimeLeft = 25 * 60 - elapsed;
 
       if (realTimeLeft <= 0) {
+        const now = Date.now();
         const newConsec = (d.state.pomodoro.consecutiveCount || 0) + 1;
         const forcedBreak = newConsec >= 3;
-        d.state.pomodoro.running = false;
-        d.state.pomodoro.timeLeft = 25 * 60;
+        d.state.pomodoro.status = 'idle';
         d.state.pomodoro.startedAt = undefined;
+        d.state.pomodoro.updatedAt = now;
         d.state.pomodoro.consecutiveCount = forcedBreak ? 0 : newConsec;
-        d.state.lastUpdateTime = Date.now();
+        d.state.lastUpdateTime = now;
         await storage.set({ state: d.state });
         fetchData();
         setOverlay(prev => prev ?? { type: 'pomodoro', forcedBreak });
@@ -97,7 +94,7 @@ export default function WebApp() {
 
     const timer = setInterval(checkCompletion, 1000);
     return () => clearInterval(timer);
-  }, [data?.state?.pomodoro.running]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data?.state?.pomodoro.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const navigateTo = (page: PageType) => {
     setCurrentPage(page);
