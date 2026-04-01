@@ -60,14 +60,16 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const now = Date.now();
     const result = processTick(data, now);
 
+    // 先写入 state（番茄钟已标为 idle），再打开确认页
+    // 必须 await tabs.create，否则 MV3 Service Worker 可能在 tab 创建前终止
+    await storageSet({ state: result.state });
+
     if (result.lowEnergyTriggered) {
-      chrome.tabs.create({ url: chrome.runtime.getURL("extension/pages/finish/finish.html?type=energy") });
+      await chrome.tabs.create({ url: chrome.runtime.getURL("extension/pages/finish/finish.html?type=energy") });
     }
 
     if (result.pomoExpired) {
-      chrome.tabs.create({ url: chrome.runtime.getURL(`extension/pages/finish/finish.html?type=pomodoro&forcedBreak=${result.isForcedBreak}`) });
+      await chrome.tabs.create({ url: chrome.runtime.getURL(`extension/pages/finish/finish.html?type=pomodoro&forcedBreak=${result.isForcedBreak}`) });
     }
-
-    await storageSet({ state: result.state });
   }
 });
