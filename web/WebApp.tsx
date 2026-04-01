@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { storage } from './storage';
 import { initWebData, startWebTicker, stopWebTicker, setLowEnergyCallback, setPomodoroCompleteCallback } from './web-ticker';
-import { type StorageData } from '../shared/types';
+import { type StorageData, type PageType } from '../shared/types';
 import { checkPomodoroExpired } from '../shared/logic';
 import MainDashboard from '../shared/components/MainDashboard';
 import RulesPage from '../shared/components/RulesPage';
@@ -10,8 +10,6 @@ import SettingsPage from '../shared/components/SettingsPage';
 import MenuPanel from '../shared/components/MenuPanel';
 import AuthPanel from './components/AuthPanel';
 import FinishOverlay from './components/FinishOverlay';
-
-import { type PageType } from '../shared/types';
 
 type OverlayState =
   | null
