@@ -9,6 +9,7 @@ import SettingsPage from '../shared/components/SettingsPage';
 
 const StatsPage = lazy(() => import('../shared/components/StatsPage'));
 import MenuPanel from '../shared/components/MenuPanel';
+import ErrorBoundary from '../shared/components/ErrorBoundary';
 import AuthPanel from './components/AuthPanel';
 import FinishOverlay from './components/FinishOverlay';
 
@@ -25,8 +26,12 @@ export default function WebApp() {
   const [overlay, setOverlay] = useState<OverlayState>(null);
 
   const fetchData = async () => {
-    const result = await storage.get(null);
-    setData(result);
+    try {
+      const result = await storage.get(null);
+      setData(result);
+    } catch {
+      // storage 读取失败时保持上次数据
+    }
   };
 
   // 页面刷新时检查是否需要显示低精力提醒
@@ -110,6 +115,7 @@ export default function WebApp() {
   }
 
   return (
+    <ErrorBoundary>
     <>
       <div className="min-h-screen bg-gray-50 flex flex-col items-center px-4">
         <div className="w-full max-w-md relative flex flex-col flex-1 min-h-0 pt-4">
@@ -157,5 +163,6 @@ export default function WebApp() {
         />
       )}
     </>
+    </ErrorBoundary>
   );
 }

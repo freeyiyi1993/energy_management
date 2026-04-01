@@ -3,6 +3,7 @@ import MainDashboard from '../../../shared/components/MainDashboard';
 import RulesPage from '../../../shared/components/RulesPage';
 import SettingsPage from '../../../shared/components/SettingsPage';
 import MenuPanel from '../../../shared/components/MenuPanel';
+import ErrorBoundary from '../../../shared/components/ErrorBoundary';
 import SyncPanel from '../../components/SyncPanel';
 import { type StorageData, type PageType } from '../../../shared/types';
 import { storage } from '../../storage';
@@ -15,8 +16,12 @@ export default function PopupApp() {
   const [data, setData] = useState<StorageData | null>(null);
 
   const fetchData = async () => {
-    const result = await storage.get(null);
-    setData(result);
+    try {
+      const result = await storage.get(null);
+      setData(result);
+    } catch {
+      // storage 读取失败时保持上次数据
+    }
   };
 
   useEffect(() => {
@@ -39,6 +44,7 @@ export default function PopupApp() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="relative bg-gray-50 p-2.5 pb-12">
       <MenuPanel
         isOpen={menuOpen}
@@ -71,5 +77,6 @@ export default function PopupApp() {
 
       <SyncPanel onSynced={fetchData} />
     </div>
+    </ErrorBoundary>
   );
 }
