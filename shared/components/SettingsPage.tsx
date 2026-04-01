@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
-import { type StorageData, type Config, type CustomTaskDef, type HealLevel, type TaskType, DEFAULT_TASK_DEFS } from '../types';
+import { type StorageData, type Config, type CustomTaskDef, type HealLevel, type TaskType, DEFAULT_TASK_DEFS, DEFAULT_CONFIG } from '../types';
 import { type StorageInterface } from '../storage';
 
 interface Props {
@@ -9,18 +9,6 @@ interface Props {
   onBack: () => void;
   onSaved: () => void;
 }
-
-const DEFAULT_CONFIG: Config = {
-  maxEnergy: 65,
-  minEnergy: 5,
-  smallHeal: 2,
-  midHeal: 5,
-  bigHealRatio: 0.2,
-  decayRate: 4,
-  penaltyMultiplier: 1.5,
-  perfectDayBonus: 1,
-  badDayPenalty: 1
-};
 
 const HEAL_LABELS: Record<HealLevel, string> = {
   none: '不恢复',
