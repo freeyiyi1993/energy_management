@@ -1,17 +1,5 @@
 import { ChevronLeft } from 'lucide-react';
-import { type StorageData, type Config, DEFAULT_TASK_DEFS } from '../types';
-
-const DEFAULT_CONFIG: Config = {
-  maxEnergy: 65,
-  minEnergy: 5, // 保留字段兼容，但不再用于 clamp
-  smallHeal: 2,
-  midHeal: 5,
-  bigHealRatio: 0.2,
-  decayRate: 4,
-  penaltyMultiplier: 1.5,
-  perfectDayBonus: 1,
-  badDayPenalty: 1
-};
+import { type StorageData, DEFAULT_CONFIG, DEFAULT_TASK_DEFS } from '../types';
 
 export default function RulesPage({ data, onBack }: { data: StorageData; onBack: () => void }) {
   const config = data.config || DEFAULT_CONFIG;

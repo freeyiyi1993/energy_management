@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { type StorageData, type CustomTaskDef, type PageType, type CompactLog, DEFAULT_TASK_DEFS } from '../types';
 import { type StorageInterface } from '../storage';
 import { calculateRecovery } from '../logic';
+import { BUILTIN_ACTION_ID, BUILTIN_ACTION_INFO, POMO_ACTION_ID, CUSTOM_ACTION_ID_OFFSET } from '../constants/actionMapping';
 
 
 interface Props {
@@ -98,13 +99,9 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
       d.state.energyConsumed = (d.state.energyConsumed || 0) + Math.abs(energyDiff);
     }
 
-    // 构建 actionId：内置任务用固定映射，自定义任务用 100+
-    const builtinMap: Record<string, number> = {
-      sleep: 0, exercise: 1, meals: 2, water: 3, stretch: 4,
-      nap: 5, meditate: 6, poop: 7
-    };
+    // 构建 actionId：内置任务用固定映射，自定义任务用 CUSTOM_ACTION_ID_OFFSET+
     const allDefs = d.taskDefs || DEFAULT_TASK_DEFS;
-    const actionId = builtinMap[def.id] ?? (100 + allDefs.findIndex(d2 => d2.id === def.id));
+    const actionId = BUILTIN_ACTION_ID[def.id] ?? (CUSTOM_ACTION_ID_OFFSET + allDefs.findIndex(d2 => d2.id === def.id));
 
     let numericVal = 1;
     if (isCounter) numericVal = d.tasks[def.id] as number;
@@ -248,24 +245,12 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
 
       {/* 今日日志流 */}
       {(() => {
-        const builtinLogMap: Record<number, { icon: string; name: string }> = {
-          0: { icon: '💤', name: '睡眠' },
-          1: { icon: '🏃', name: '运动' },
-          2: { icon: '🍽️', name: '三餐' },
-          3: { icon: '💧', name: '饮水' },
-          4: { icon: '🧘', name: '拉伸' },
-          5: { icon: '😴', name: '午睡' },
-          6: { icon: '🧠', name: '冥想' },
-          7: { icon: '💩', name: '肠道' },
-          8: { icon: '🍅', name: '番茄' },
-        };
-
         const allDefs = data.taskDefs || DEFAULT_TASK_DEFS;
 
         const getActionInfo = (actionId: number) => {
-          if (builtinLogMap[actionId]) return builtinLogMap[actionId];
-          if (actionId >= 100) {
-            const idx = actionId - 100;
+          if (BUILTIN_ACTION_INFO[actionId]) return BUILTIN_ACTION_INFO[actionId];
+          if (actionId >= CUSTOM_ACTION_ID_OFFSET) {
+            const idx = actionId - CUSTOM_ACTION_ID_OFFSET;
             const def = allDefs[idx];
             if (def) return { icon: def.icon, name: def.name };
           }
@@ -296,12 +281,9 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
         };
 
         const formatValue = (actionId: number, val: number) => {
-          if (actionId === 0) return `${val}h`;
-          if (actionId === 1) return `${val}min`;
-          if (actionId === 8) return `${val}%`;
-          // counter / boolean
-          const info = builtinLogMap[actionId];
-          if (info) return String(val);
+          if (actionId === BUILTIN_ACTION_ID.sleep) return `${val}h`;
+          if (actionId === BUILTIN_ACTION_ID.exercise) return `${val}min`;
+          if (actionId === POMO_ACTION_ID) return `${val}%`;
           return String(val);
         };
 
