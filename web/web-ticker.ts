@@ -7,12 +7,12 @@ import { initAppData, handleDayRollover, processTick } from '../shared/ticker';
 const storageSet = (data: Partial<StorageData>) => storage.set(data);
 
 export async function initWebData() {
-  const data = await storage.get(null) as StorageData;
+  const data = await storage.get(null);
   await initAppData(data, storageSet);
 }
 
 async function tick() {
-  const data = await storage.get(null) as StorageData;
+  const data = await storage.get(null);
   if (!data.state) return;
 
   // 旧格式迁移

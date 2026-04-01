@@ -61,8 +61,8 @@ function migratePomodoro(state: Record<string, any> | null | undefined): void {
 
 // --- 云端上传/下载（封装格式转换逻辑） ---
 
-export async function syncToCloud(storage: { get(keys: string[] | null): Promise<Partial<StorageData>> }, cloud: CloudSyncService): Promise<void> {
-  const data = await storage.get(null) as StorageData;
+export async function syncToCloud(storage: { get(keys: null): Promise<StorageData> }, cloud: CloudSyncService): Promise<void> {
+  const data = await storage.get(null);
   // merge:true 下 undefined 字段不会被删除，需显式转 null
   if (data.state?.pomodoro && data.state.pomodoro.startedAt === undefined) {
     (data.state.pomodoro as unknown as Record<string, unknown>).startedAt = null;

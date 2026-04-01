@@ -73,7 +73,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
     if (!isCounter && tasks[def.id] !== null && tasks[def.id] !== false && tasks[def.id] !== undefined) return;
     if (isCounter && (tasks[def.id] as number || 0) >= maxCount) return;
 
-    const d = await storage.get(['tasks', 'state', 'logs', 'config', 'taskDefs']) as StorageData;
+    const d = await storage.get(['tasks', 'state', 'logs', 'config', 'taskDefs']);
     if (!d.tasks || !d.state) return;
 
     // 二次防重：从 storage 真实读取后再检查（React state 可能因 sync 延迟而过时）

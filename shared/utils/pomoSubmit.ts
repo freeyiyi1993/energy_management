@@ -10,7 +10,7 @@ export async function submitPomoScore(
   storage: StorageInterface,
   score: number,
 ): Promise<boolean> {
-  const data = await storage.get(['state', 'logs']) as StorageData;
+  const data = await storage.get(['state', 'logs']);
   if (!data.state) return false;
 
   const now = Date.now();

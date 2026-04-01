@@ -62,7 +62,7 @@ export default function SettingsPage({ data, storage, onBack, onSaved }: Props) 
     const oldConfig = data.config || DEFAULT_CONFIG;
     await storage.set({ config, taskDefs });
 
-    const d = (await storage.get(['logs', 'state'])) as StorageData;
+    const d = await storage.get(['logs', 'state']);
     if (d.state) {
       const diff = config.maxEnergy - oldConfig.maxEnergy;
       d.state.maxEnergy += diff;

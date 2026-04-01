@@ -25,7 +25,7 @@ export default function WebApp() {
 
   const fetchData = async () => {
     const result = await storage.get(null);
-    setData(result as StorageData);
+    setData(result);
   };
 
   // 页面刷新时检查是否需要显示低精力提醒
@@ -69,7 +69,7 @@ export default function WebApp() {
     if (data?.state?.pomodoro.status !== 'ongoing') return;
 
     const checkCompletion = async () => {
-      const d = await storage.get(['state']) as StorageData;
+      const d = await storage.get(['state']);
       if (!d.state || d.state.pomodoro.status !== 'ongoing') return;
 
       const now = Date.now();

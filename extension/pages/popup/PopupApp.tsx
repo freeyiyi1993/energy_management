@@ -15,7 +15,7 @@ export default function PopupApp() {
 
   const fetchData = async () => {
     const result = await storage.get(null);
-    setData(result as StorageData);
+    setData(result);
   };
 
   useEffect(() => {

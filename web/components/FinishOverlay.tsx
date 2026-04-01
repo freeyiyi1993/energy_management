@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { storage } from '../storage';
-import { type StorageData } from '../../shared/types';
 import { submitPomoScore } from '../../shared/utils/pomoSubmit';
 
 interface Props {
@@ -13,7 +12,7 @@ export default function FinishOverlay({ type, forcedBreak = false, onClose }: Pr
   const [score, setScore] = useState(100);
 
   const handleEnergyDismiss = async () => {
-    const data = await storage.get(['state']) as StorageData;
+    const data = await storage.get(['state']);
     if (data.state) {
       data.state.lowEnergyReminded = true;
       await storage.set({ state: data.state });

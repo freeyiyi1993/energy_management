@@ -4,7 +4,8 @@ import { type CloudSyncService, syncToCloud, syncFromCloud } from './cloudSync';
 
 // 统一存储接口：各平台（Chrome 扩展 / Web）各自实现
 export interface StorageInterface {
-  get(keys: string[] | null): Promise<Partial<StorageData>>;
+  get(keys: null): Promise<StorageData>;
+  get(keys: string[]): Promise<Partial<StorageData>>;
   set(data: Partial<StorageData>): Promise<void>;
 }
 
@@ -145,7 +146,7 @@ function mergeState(local: AppState | undefined, cloud: AppState | undefined): A
 /** 重置所有数据：写入 dataResetAt 时间戳，各端忽略此前数据 */
 export async function resetAllData(storage: StorageInterface, cloud?: CloudSyncService): Promise<void> {
   const dataResetAt = Date.now();
-  const existing = await storage.get(['config', 'taskDefs']) as StorageData;
+  const existing = await storage.get(['config', 'taskDefs']);
   const config = existing.config || DEFAULT_CONFIG;
   const taskDefs = existing.taskDefs || DEFAULT_TASK_DEFS;
 
@@ -189,7 +190,7 @@ export async function sync(storage: StorageInterface, cloud: CloudSyncService): 
     return 'empty';
   }
 
-  const localData = await storage.get(null) as StorageData;
+  const localData = await storage.get(null);
 
   // --- dataResetAt 合并：取较大值 ---
   const localResetAt = localData.dataResetAt || 0;
