@@ -95,12 +95,20 @@ export const DEFAULT_CONFIG: Config = {
   badDayPenalty: 1,
 };
 
+export interface StatEntry {
+  date: string;
+  maxEnergy: number;
+  energyConsumed: number;
+  pomoCount: number;
+  perfectCount: number;
+}
+
 export interface StorageData {
   config?: Config;
   state?: AppState;
   tasks?: Tasks;
   taskDefs?: CustomTaskDef[];
-  stats?: any[];
+  stats?: StatEntry[];
   logs?: AppLogEntry[];
   dataResetAt?: number;
 }

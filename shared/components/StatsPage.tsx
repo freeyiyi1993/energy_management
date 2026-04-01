@@ -31,7 +31,7 @@ export default function StatsPage({ data, onBack }: Props) {
     if (!chartRef.current) return;
 
     const resetDateStr = dataResetAt ? new Date(dataResetAt).toLocaleDateString('en-CA') : '';
-    const stats = (data.stats || []).filter((s: any) => !resetDateStr || s.date >= resetDateStr);
+    const stats = (data.stats || []).filter(s => !resetDateStr || s.date >= resetDateStr);
     const recentStats = stats.slice(-6);
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
 
@@ -50,7 +50,7 @@ export default function StatsPage({ data, onBack }: Props) {
 
     const labels = chartData.map(s => s.date.substring(5));
     const maxEnergyData = chartData.map(s => s.maxEnergy);
-    const consumedData = chartData.map(s => s.energyConsumed.toFixed(1));
+    const consumedData = chartData.map(s => Number(s.energyConsumed.toFixed(1)));
     const pomoData = chartData.map(s => s.pomoCount);
     const perfectData = chartData.map(s => s.perfectCount);
 
@@ -282,7 +282,7 @@ export default function StatsPage({ data, onBack }: Props) {
 
                 {expandedDates[dateStr] && (
                   <div className="pl-2 pr-1 mt-1 border-l-2 border-emerald-100 ml-1">
-                    {groupedLogs[dateStr].map((log: any, i: number) => {
+                    {groupedLogs[dateStr].map((log, i) => {
                       return (
                         <div key={i} className="py-1.5 border-b border-gray-50 last:border-0 flex justify-between items-start">
                           <span className="text-gray-600">{log.text}</span>

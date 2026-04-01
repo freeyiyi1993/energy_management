@@ -53,13 +53,9 @@ export async function initAppData(
     const minsPassedSince8AM = Math.max(0, (now - startOfToday) / 60000);
 
     let initialEnergy = config.maxEnergy;
-    let decayRate = config.decayRate / 60;
-    const currentHour = new Date().getHours();
+    const decayRate = config.decayRate / 60;
 
-    if (currentHour >= 9 || currentHour >= 13 || currentHour >= 19) {
-      decayRate *= config.penaltyMultiplier;
-    }
-
+    // 首次安装无 meals 数据，用基础衰减率（不加惩罚）
     initialEnergy -= decayRate * minsPassedSince8AM;
 
     await storageSet({

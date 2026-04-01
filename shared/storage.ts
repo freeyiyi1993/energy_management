@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { type StorageData, type AppLogEntry, type Tasks, type AppState, type PomodoroTimer, DEFAULT_CONFIG, DEFAULT_TASK_DEFS } from './types';
+import { type StorageData, type StatEntry, type AppLogEntry, type Tasks, type AppState, type PomodoroTimer, DEFAULT_CONFIG, DEFAULT_TASK_DEFS } from './types';
 import { getLogicalDate, getLogical8AM, buildEmptyTasks } from './utils/time';
 
 // 统一存储接口：各平台（Chrome 扩展 / Web）各自实现
@@ -20,7 +20,8 @@ export const DEFAULT_POMODORO: PomodoroTimer = {
 // --- 旧格式迁移 ---
 
 /** 检测并迁移旧版 PomodoroState → PomodoroTimer，count/perfectCount 拆到 AppState */
-export function migratePomodoro(state: any): void {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 旧格式结构不确定，需要 any 做运行时检测
+export function migratePomodoro(state: Record<string, any> | null | undefined): void {
   if (!state?.pomodoro) return;
   const p = state.pomodoro;
   // 已是新格式
@@ -39,15 +40,15 @@ export function migratePomodoro(state: any): void {
 // --- Firestore 日志转换 ---
 // Firestore 不支持嵌套数组，CompactLog [n,n,n,n] 需转为对象
 
-export function logsToFirestore(logs: any[]): any[] {
+export function logsToFirestore(logs: AppLogEntry[]): (AppLogEntry | { _t: number; _a: number; _v: number; _d: number })[] {
   return logs.map(entry =>
     Array.isArray(entry) ? { _t: entry[0], _a: entry[1], _v: entry[2], _d: entry[3] } : entry
   );
 }
 
-export function logsFromFirestore(logs: any[]): any[] {
+export function logsFromFirestore(logs: (AppLogEntry | { _t: number; _a: number; _v: number; _d: number })[]): AppLogEntry[] {
   return logs.map(entry =>
-    entry && typeof entry === 'object' && '_t' in entry ? [entry._t, entry._a, entry._v, entry._d] : entry
+    (entry && typeof entry === 'object' && '_t' in entry) ? [entry._t, entry._a, entry._v, entry._d] as AppLogEntry : entry as AppLogEntry
   );
 }
 
@@ -57,8 +58,9 @@ export async function syncToCloud(storage: StorageInterface, uid: string): Promi
   const data = await storage.get(null) as StorageData;
   const ref = doc(db, 'users', uid);
   // merge:true 下 undefined 字段不会被删除，需显式转 null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Firestore 需要 null 而非 undefined 来删除字段
   if (data.state?.pomodoro && data.state.pomodoro.startedAt === undefined) {
-    (data.state.pomodoro as any).startedAt = null;
+    (data.state.pomodoro as unknown as Record<string, unknown>).startedAt = null;
   }
   const payload = {
     ...data,
@@ -72,13 +74,13 @@ export async function syncFromCloud(uid: string): Promise<StorageData | null> {
   const ref = doc(db, 'users', uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
-  const cloudData = snap.data() as StorageData & { lastSyncAt?: number };
-  delete (cloudData as any).lastSyncAt;
+  const rawData = snap.data() as StorageData & { lastSyncAt?: number };
+  const { lastSyncAt: _, ...cloudData } = rawData;
   if (cloudData.logs) {
     cloudData.logs = logsFromFirestore(cloudData.logs);
   }
   // Firestore 的 null 还原为 undefined
-  if (cloudData.state?.pomodoro && (cloudData.state.pomodoro as any).startedAt === null) {
+  if (cloudData.state?.pomodoro && (cloudData.state.pomodoro as unknown as Record<string, unknown>).startedAt === null) {
     cloudData.state.pomodoro.startedAt = undefined;
   }
   // 旧格式迁移
@@ -241,7 +243,7 @@ export async function sync(storage: StorageInterface, uid: string): Promise<'syn
   // 合并 stats，按 dataResetAt 过滤
   const localStats = localData.stats || [];
   const cloudStats = cloudData.stats || [];
-  let mergedStats: any[];
+  let mergedStats: StatEntry[];
   if (mergedResetAt > 0) {
     const resetDateStr = new Date(mergedResetAt).toLocaleDateString('en-CA');
     // 取并集按 date 去重，再过滤
