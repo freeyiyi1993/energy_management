@@ -23,23 +23,26 @@ extension/                     # Chrome 扩展端
 ├── storage.ts                 #   chrome.storage.local 实现 + 云同步
 ├── pages/popup/               #   弹窗入口 (PopupApp.tsx)
 ├── pages/finish/              #   全屏提醒页 (FinishApp.tsx)
-├── components/SyncPanel.tsx   #   同步面板
+├── components/SyncPanel.tsx   #   同步面板 (thin wrapper → BaseAuthPanel)
 └── public/manifest.json       #   Manifest V3
 
 web/                           # Web 端
 ├── vite.config.ts             #   Web Vite 构建配置
 ├── WebApp.tsx                 #   Web 主组件 (含低精力覆盖层)
 ├── storage.ts                 #   localStorage 实现 + 云同步
-├── web-ticker.ts              #   setInterval 替代 chrome.alarms
-└── components/AuthPanel.tsx   #   登录面板
+├── web-ticker.ts              #   setInterval 替代 chrome.alarms (委托 shared/ticker)
+└── components/AuthPanel.tsx   #   登录面板 (thin wrapper → BaseAuthPanel)
 
 shared/                        # 双端共享
 ├── types/index.ts             #   TypeScript 类型定义 (PomodoroTimer, AppState 等)
 ├── firebase.ts                #   Firebase 初始化
 ├── storage.ts                 #   StorageInterface 抽象 + 双向同步 + 迁移
 ├── logic.ts                   #   核心纯函数 (衰减/恢复/番茄完成/完美一天/日切)
+├── ticker.ts                  #   共享 init/日切/tick 逻辑 (平台无关)
+├── constants/actionMapping.ts #   actionId 集中映射 (BUILTIN_ACTION_ID/INFO)
 ├── utils/time.ts              #   时间工具
-├── components/                #   MainDashboard, StatsPage, RulesPage, SettingsPage, MenuPanel
+├── utils/pomoSubmit.ts        #   番茄钟提交共享逻辑
+├── components/                #   MainDashboard, StatsPage, RulesPage, SettingsPage, MenuPanel, BaseAuthPanel
 └── public/                    #   共享静态资源
 
 tests/                         # 测试 (76 case)
@@ -180,6 +183,7 @@ npm run lint              # ESLint
 - [x] 番茄钟重置按钮移除 (点击即 toggle 开始/停止)
 - [x] 核心逻辑提取 shared/logic.ts (5 个纯函数)
 - [x] 测试覆盖 23→76 case (逻辑/同步/时间/类型/Puppeteer UI)
+- [x] 代码优化: 提取共享 ticker/actionMapping/pomoSubmit/BaseAuthPanel，消除重复代码 ~500 行
 
 ## 交付质量规范
 
