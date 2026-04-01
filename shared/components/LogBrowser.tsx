@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { type StorageData, type CompactLog, DEFAULT_TASK_DEFS } from '../types';
+import { type StorageData, DEFAULT_TASK_DEFS } from '../types';
 import { getLogTimestamp } from '../storage';
 import { BUILTIN_ACTION_ID, BUILTIN_ACTION_INFO, POMO_ACTION_ID, CUSTOM_ACTION_ID_OFFSET } from '../constants/actionMapping';
 

@@ -1,4 +1,3 @@
-import { type StorageData } from '../types';
 import { type StorageInterface } from '../storage';
 import { POMO_ACTION_ID } from '../constants/actionMapping';
 

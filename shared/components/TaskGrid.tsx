@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { type StorageData, type CustomTaskDef, type Tasks, type Config, DEFAULT_TASK_DEFS } from '../types';
+import { type CustomTaskDef, type Tasks, type Config, DEFAULT_TASK_DEFS } from '../types';
 import { type StorageInterface } from '../storage';
 import { calculateRecovery } from '../logic';
 import { BUILTIN_ACTION_ID, CUSTOM_ACTION_ID_OFFSET } from '../constants/actionMapping';
