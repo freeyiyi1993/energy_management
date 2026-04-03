@@ -5,6 +5,7 @@
 body {
   margin: 0;
   padding: 0;
+  padding-bottom: env(safe-area-inset-bottom);
   font-family: system-ui, -apple-system, sans-serif;
   background-color: #f3f4f6;
   color: #1f2937;
