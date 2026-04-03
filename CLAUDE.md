@@ -49,7 +49,7 @@ shared/                        # 双端共享
 │                              #   PerfectDayCelebration
 └── public/                    #   共享静态资源
 
-tests/                         # 测试 (132 case)
+tests/                         # 测试 (137 case)
 ├── logic.test.ts              #   核心逻辑单测 (29 case)
 ├── ticker.test.ts             #   共享 ticker 单测 (17 case)
 ├── pomoSubmit.test.ts         #   番茄提交单测 (8 case)
@@ -58,8 +58,8 @@ tests/                         # 测试 (132 case)
 ├── types.test.ts              #   类型结构验证 (8 case)
 ├── web_ui.test.ts             #   Puppeteer UI 自动化 (6 case)
 ├── background.test.ts         #   background tick handler (8 case)
-└── components/                #   UI 组件测试 (23 case)
-    ├── MainDashboard.test.tsx  #     打卡流程 (8 case)
+└── components/                #   UI 组件测试 (28 case)
+    ├── MainDashboard.test.tsx  #     打卡流程+庆祝弹窗 (14 case)
     ├── PomodoroRing.test.tsx   #     番茄钟状态机 (5 case)
     ├── SettingsPage.test.tsx   #     设置页增删任务 (5 case)
     └── BaseAuthPanel.test.tsx  #     登录态切换 (5 case)
@@ -200,14 +200,14 @@ npm run lint              # ESLint
 - [x] 番茄钟原子实例同步 (PomodoroTimer + updatedAt 整体覆盖，count 拆到 AppState)
 - [x] 番茄钟重置按钮移除 (点击即 toggle 开始/停止)
 - [x] 核心逻辑提取 shared/logic.ts (5 个纯函数)
-- [x] 测试覆盖 23→132 case (逻辑/同步/时间/类型/ticker/pomoSubmit/Puppeteer UI/组件)
+- [x] 测试覆盖 23→137 case (逻辑/同步/时间/类型/ticker/pomoSubmit/Puppeteer UI/组件)
 - [x] 代码优化: 提取共享 ticker/actionMapping/pomoSubmit/BaseAuthPanel，消除重复代码 ~500 行
 - [x] Firebase 解耦: CloudSyncService 接口 + Firestore 动态 import，shared 层不直接依赖 Firebase
 - [x] 大组件拆分: MainDashboard→4 子组件, SettingsPage→TaskEditModal, StatsPage→LogBrowser
 - [x] StatsPage + Chart.js 懒加载 (React.lazy, 独立 chunk ~170KB)
 - [x] ErrorBoundary 组件 + fetchData 错误处理
 - [x] StorageInterface 重载消除 15 处 as StorageData 强转
-- [x] UI 组件测试 23 case (MainDashboard/PomodoroRing/SettingsPage/BaseAuthPanel)
+- [x] UI 组件测试 28 case (MainDashboard/PomodoroRing/SettingsPage/BaseAuthPanel)
 - [x] 完美一天庆祝弹窗 (最后一项打卡触发，撒花动效+🏆，点击关闭)
 
 ## 交付质量规范
