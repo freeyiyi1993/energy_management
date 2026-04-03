@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { type CustomTaskDef, type Tasks, type Config, DEFAULT_TASK_DEFS } from '../types';
-import { type StorageInterface } from '../storage';
+import { type StorageInterface, migrateTaskDefs } from '../storage';
 import { calculateRecovery, isFullPerfectDay } from '../logic';
 import { BUILTIN_ACTION_ID, CUSTOM_ACTION_ID_OFFSET } from '../constants/actionMapping';
 
@@ -59,7 +59,7 @@ export default function TaskGrid({ tasks, config, taskDefs, storage, onDataChang
       d.state.energyConsumed = (d.state.energyConsumed || 0) + Math.abs(energyDiff);
     }
 
-    const allDefs = d.taskDefs || DEFAULT_TASK_DEFS;
+    const allDefs = migrateTaskDefs(d.taskDefs) || DEFAULT_TASK_DEFS;
     const actionId = BUILTIN_ACTION_ID[def.id] ?? (CUSTOM_ACTION_ID_OFFSET + allDefs.findIndex(d2 => d2.id === def.id));
 
     let numericVal = 1;

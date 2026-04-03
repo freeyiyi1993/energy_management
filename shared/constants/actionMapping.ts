@@ -17,6 +17,7 @@ export const BUILTIN_ACTION_INFO: Record<number, { icon: string; name: string }>
   8: { icon: '🍅', name: '番茄' },
   9: { icon: '🏆', name: '完美一天' },
   10: { icon: '⚠️', name: '糟糕一天' },
+  11: { icon: '⚙️', name: '配置更新' },
 };
 
 /** 番茄钟特殊 actionId */
@@ -24,6 +25,9 @@ export const POMO_ACTION_ID = 8;
 /** 日切结算 actionId */
 export const PERFECT_DAY_ACTION_ID = 9;
 export const BAD_DAY_ACTION_ID = 10;
+
+/** 系统配置更新 actionId */
+export const CONFIG_UPDATE_ACTION_ID = 11;
 
 /** 自定义任务 actionId 起始偏移 */
 export const CUSTOM_ACTION_ID_OFFSET = 100;

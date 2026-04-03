@@ -1,15 +1,17 @@
-import { type AppState } from '../types';
+import { type AppState, type Config } from '../types';
 
 interface Props {
   state: AppState;
+  config?: Config;
   className?: string;
 }
 
-export default function EnergyBar({ state, className }: Props) {
+export default function EnergyBar({ state, config, className }: Props) {
   const energyPercent = (state.energy / state.maxEnergy) * 100;
+  const threshold = config?.lowEnergyThreshold ?? 20;
   let barColor = '#10b981';
-  if (state.energy < 20) barColor = '#ef4444';
-  else if (state.energy < 40) barColor = '#f59e0b';
+  if (state.energy < threshold) barColor = '#ef4444';
+  else if (state.energy < threshold * 2) barColor = '#f59e0b';
 
   return (
     <div className={className}>

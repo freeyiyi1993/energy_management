@@ -36,7 +36,8 @@ export default function WebApp() {
 
   // 页面刷新时检查是否需要显示低精力提醒
   useEffect(() => {
-    if (data?.state && data.state.energy < 20 && !data.state.lowEnergyReminded) {
+    const threshold = data?.config?.lowEnergyThreshold ?? 20;
+    if (data?.state && data.state.energy < threshold && !data.state.lowEnergyReminded) {
       setOverlay({ type: 'energy' });
       storage.set({ state: { ...data.state, lowEnergyReminded: true } });
     }

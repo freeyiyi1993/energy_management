@@ -1,6 +1,5 @@
 export interface Config {
   maxEnergy: number;
-  minEnergy: number;
   smallHeal: number;
   midHeal: number;
   bigHealRatio: number;
@@ -8,6 +7,7 @@ export interface Config {
   penaltyMultiplier: number;
   perfectDayBonus: number;
   badDayPenalty: number;
+  lowEnergyThreshold: number;
 }
 
 export interface PomodoroTimer {
@@ -78,14 +78,13 @@ export const DEFAULT_TASK_DEFS: CustomTaskDef[] = [
   { id: 'meals',    name: '主食打卡', icon: '🍚', type: 'counter', healLevel: 'mid',   maxCount: 3, builtin: true, enabled: true, countsForPerfectDay: true },
   { id: 'water',    name: '喝水打卡', icon: '💧', type: 'counter', healLevel: 'small', maxCount: 5, builtin: true, enabled: true, countsForPerfectDay: true },
   { id: 'stretch',  name: '拉伸放松', icon: '🧘', type: 'counter', healLevel: 'small', maxCount: 3, builtin: true, enabled: true, countsForPerfectDay: false },
-  { id: 'nap',      name: '午间小憩', icon: '🌙', type: 'boolean', healLevel: 'small', builtin: true, enabled: true, countsForPerfectDay: false },
+  { id: 'nap',      name: '午间小憩', icon: '😴', type: 'boolean', healLevel: 'small', builtin: true, enabled: true, countsForPerfectDay: true },
   { id: 'meditate', name: '正念冥想', icon: '🧠', type: 'counter', healLevel: 'small', maxCount: 3, builtin: true, enabled: true, countsForPerfectDay: false },
-  { id: 'poop',     name: '肠道管理', icon: '💨', type: 'boolean', healLevel: 'small', builtin: true, enabled: true, countsForPerfectDay: false },
+  { id: 'poop',     name: '肠道管理', icon: '💩', type: 'boolean', healLevel: 'small', builtin: true, enabled: true, countsForPerfectDay: true },
 ];
 
 export const DEFAULT_CONFIG: Config = {
   maxEnergy: 65,
-  minEnergy: 5,
   smallHeal: 2,
   midHeal: 5,
   bigHealRatio: 0.2,
@@ -93,6 +92,7 @@ export const DEFAULT_CONFIG: Config = {
   penaltyMultiplier: 1.5,
   perfectDayBonus: 1,
   badDayPenalty: 1,
+  lowEnergyThreshold: 20,
 };
 
 export interface StatEntry {

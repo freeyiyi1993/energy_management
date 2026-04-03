@@ -1,4 +1,5 @@
 import { type StorageData, type CompactLog, DEFAULT_TASK_DEFS } from '../types';
+import { migrateTaskDefs } from '../storage';
 import { BUILTIN_ACTION_ID, BUILTIN_ACTION_INFO, POMO_ACTION_ID, PERFECT_DAY_ACTION_ID, BAD_DAY_ACTION_ID, CUSTOM_ACTION_ID_OFFSET } from '../constants/actionMapping';
 
 interface Props {
@@ -10,7 +11,7 @@ export default function ActivityLog({ data, className }: Props) {
   const { state } = data;
   if (!state) return null;
 
-  const allDefs = data.taskDefs || DEFAULT_TASK_DEFS;
+  const allDefs = migrateTaskDefs(data.taskDefs) || DEFAULT_TASK_DEFS;
 
   const getActionInfo = (actionId: number) => {
     if (BUILTIN_ACTION_INFO[actionId]) return BUILTIN_ACTION_INFO[actionId];
@@ -48,10 +49,7 @@ export default function ActivityLog({ data, className }: Props) {
     if (actionId === BUILTIN_ACTION_ID.sleep) return `${val}h`;
     if (actionId === BUILTIN_ACTION_ID.exercise) return `${val}min`;
     if (actionId === POMO_ACTION_ID) return `${val}%`;
-    if (actionId === PERFECT_DAY_ACTION_ID) {
-      return diff === 0 ? '达成!' : `上限 ${val - diff}→${val}`;
-    }
-    if (actionId === BAD_DAY_ACTION_ID) {
+    if (actionId === PERFECT_DAY_ACTION_ID || actionId === BAD_DAY_ACTION_ID) {
       return `上限 ${val - diff}→${val}`;
     }
     return String(val);

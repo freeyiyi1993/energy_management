@@ -1,8 +1,8 @@
 import { type AppState, type Tasks, type StorageData, type CustomTaskDef, DEFAULT_TASK_DEFS, DEFAULT_CONFIG } from './types';
 import { getLogicalDate, getLogical8AM, buildEmptyTasks } from './utils/time';
 import { DEFAULT_POMODORO, migratePomodoro } from './storage';
-import { calculateDecay, calculateMaxEnergyDelta, checkPomodoroExpired, isFullPerfectDay, isBadDay } from './logic';
-import { PERFECT_DAY_ACTION_ID, BAD_DAY_ACTION_ID } from './constants/actionMapping';
+import { calculateDecay, calculateMaxEnergyDelta, checkPomodoroExpired, isBadDay } from './logic';
+import { BAD_DAY_ACTION_ID } from './constants/actionMapping';
 
 /** 通用写入函数签名（由调用方注入，chrome.storage.local.set 或 localStorage wrapper） */
 export type StorageSetFn = (data: Partial<StorageData>) => Promise<void>;
@@ -135,11 +135,9 @@ export function handleDayRollover(data: StorageData, todayStr: string): DayRollo
       config.maxEnergy = state.maxEnergy;
     }
 
-    // 日志记录精力上限变动
+    // 日志记录精力上限变动（完美一天奖励已在打卡时即时生效，此处仅记录糟糕一天）
     const now = Date.now();
-    if (isFullPerfectDay(tasks, taskDefs, perfectCount)) {
-      logs.unshift([now, PERFECT_DAY_ACTION_ID, state.maxEnergy, maxEnergyDelta]);
-    } else if (isBadDay(tasks, perfectCount)) {
+    if (isBadDay(tasks, perfectCount)) {
       logs.unshift([now, BAD_DAY_ACTION_ID, state.maxEnergy, maxEnergyDelta]);
     }
   }
@@ -192,7 +190,8 @@ export function processTick(data: StorageData, now: number): TickResult {
 
   // 低精力检测
   let lowEnergyTriggered = false;
-  if (state.energy < 20 && !state.lowEnergyReminded) {
+  const threshold = config.lowEnergyThreshold ?? 20;
+  if (state.energy < threshold && !state.lowEnergyReminded) {
     state.lowEnergyReminded = true;
     lowEnergyTriggered = true;
   }

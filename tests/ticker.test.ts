@@ -122,7 +122,7 @@ describe('handleDayRollover', () => {
     expect(toWrite.tasks!['sleep']).toBeNull();
   });
 
-  it('perfect day: maxEnergy increases + stats records new value + config synced', () => {
+  it('perfect day: no bonus at day rollover (applied immediately on check-in)', () => {
     const data: StorageData = {
       config: { ...DEFAULT_CONFIG },
       taskDefs: DEFAULT_TASK_DEFS,
@@ -131,9 +131,8 @@ describe('handleDayRollover', () => {
       stats: [],
     };
     const { toWrite } = handleDayRollover(data, '2026-03-31');
-    expect(toWrite.state!.maxEnergy).toBe(66);
-    expect(toWrite.stats![0].maxEnergy).toBe(66); // stats 记录 delta 后的值
-    expect(toWrite.config!.maxEnergy).toBe(66);   // config 同步
+    expect(toWrite.state!.maxEnergy).toBe(65); // unchanged at rollover
+    expect(toWrite.stats![0].maxEnergy).toBe(65);
   });
 
   it('bad day: maxEnergy decreases + stats records new value + config synced', () => {
@@ -164,7 +163,7 @@ describe('handleDayRollover', () => {
     expect(toWrite.stats![0].maxEnergy).toBe(65);
   });
 
-  it('perfect day: writes log entry with maxEnergy change', () => {
+  it('perfect day: no log entry at day rollover (logged at check-in time)', () => {
     const data: StorageData = {
       config: DEFAULT_CONFIG,
       taskDefs: DEFAULT_TASK_DEFS,
@@ -175,9 +174,7 @@ describe('handleDayRollover', () => {
     };
     const { toWrite } = handleDayRollover(data, '2026-03-31');
     const perfectLog = toWrite.logs!.find((l: any) => l[1] === 9); // PERFECT_DAY_ACTION_ID
-    expect(perfectLog).toBeTruthy();
-    expect(perfectLog![2]).toBe(66); // new maxEnergy
-    expect(perfectLog![3]).toBe(DEFAULT_CONFIG.perfectDayBonus);
+    expect(perfectLog).toBeUndefined(); // no perfect day log at rollover
   });
 
   it('bad day: writes log entry with maxEnergy change', () => {

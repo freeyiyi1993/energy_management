@@ -43,14 +43,15 @@ shared/                        # 双端共享
 ├── constants/actionMapping.ts #   actionId 集中映射 (BUILTIN_ACTION_ID/INFO)
 ├── utils/time.ts              #   时间工具
 ├── utils/pomoSubmit.ts        #   番茄钟提交共享逻辑
+├── utils/migration.ts         #   迁移/格式转换 (migratePomodoro/migrateTaskDefs/logsTo/FromFirestore)
 ├── components/                #   MainDashboard, EnergyBar, PomodoroRing, TaskGrid, ActivityLog,
 │                              #   StatsPage (lazy), LogBrowser, SettingsPage, TaskEditModal,
 │                              #   RulesPage, MenuPanel, BaseAuthPanel, ErrorBoundary,
 │                              #   DayResultModal
 └── public/                    #   共享静态资源
 
-tests/                         # 测试 (156 case)
-├── logic.test.ts              #   核心逻辑单测 (37 case)
+tests/                         # 测试 (165 case)
+├── logic.test.ts              #   核心逻辑单测 (36 case)
 ├── ticker.test.ts             #   共享 ticker 单测 (20 case)
 ├── pomoSubmit.test.ts         #   番茄提交单测 (8 case)
 ├── storage.test.ts            #   同步合并/迁移/Firestore 转换 (16 case)
@@ -74,7 +75,7 @@ dist-web/                      # Web 版构建产物
 npm run build             # 构建 Chrome 扩展到 dist/
 npm run build:web         # 构建 Web 版到 dist-web/
 npm run dev:web           # Web 版开发服务器 (port 3000)
-npm run test              # 单元测试 + Puppeteer UI 测试 (76 case)
+npm run test              # 单元测试 + Puppeteer UI 测试 (165 case)
 npm run lint              # ESLint
 ```
 
@@ -124,9 +125,9 @@ npm run lint              # ESLint
 
 ### ADR-006: 完美一天动态判断
 - **决策**: CustomTaskDef 新增 `countsForPerfectDay` 字段，完美一天结算基于该字段动态判断
-- **原因**: 用户需要控制哪些任务计入完美一天（如 stretch/meditate/poop 不计入）
-- **默认计入**: sleep, exercise, meals, water
-- **默认不计入**: stretch, nap, meditate, poop
+- **原因**: 用户需要控制哪些任务计入完美一天
+- **默认计入**: sleep, exercise, meals, water, nap, poop
+- **默认不计入**: stretch, meditate
 - **状态**: 已实现
 
 ### ADR-007: 双向云同步
@@ -173,6 +174,23 @@ npm run lint              # ESLint
 - **附带**: Firestore SDK 改为 dynamic `import()`，首屏不加载
 - **状态**: 已实现
 
+### ADR-014: 完美一天奖励即时生效
+- **决策**: 完美一天 maxEnergy +bonus 在打卡达成时立即生效，不再等日切。日切仅处理糟糕一天惩罚
+- **原因**: 原逻辑日切时统一结算，导致完美一天日志记录的是"预测值"，若设置页修改 maxEnergy 则不准。即时生效更简单直观
+- **实现**: MainDashboard 检测到完美一天 → 立即更新 state.maxEnergy 和 config.maxEnergy → 写入日志 "上限 x→y"
+- **状态**: 已实现
+
+### ADR-015: 删除 minEnergy，新增 lowEnergyThreshold
+- **决策**: 删除 Config.minEnergy（未使用的死代码），新增 Config.lowEnergyThreshold（默认 20 点）用于低精力提醒
+- **原因**: ADR-005 已确定"无下限"，minEnergy 无实际用途。低精力阈值原为硬编码 20，改为可配置
+- **影响**: 设置页新增"低精力提醒阈值"配置项，精力条颜色也基于此阈值变色
+- **状态**: 已实现
+
+### ADR-016: 迁移工具函数提取到 shared/utils/migration.ts
+- **决策**: logsToFirestore/logsFromFirestore/migratePomodoro/migrateTaskDefs 提取到 `shared/utils/migration.ts`，storage.ts 和 cloudSync.ts 统一 import
+- **原因**: 原先 storage.ts 和 cloudSync.ts 各自维护一份相同代码，产生不一致风险。提取到独立模块避免循环依赖
+- **状态**: 已实现
+
 ## Current Status
 - [x] 插件基础功能 (MVP)
 - [x] 节假日模式 + 日志压缩优化
@@ -211,6 +229,11 @@ npm run lint              # ESLint
 - [x] 完美一天庆祝弹窗 (最后一项打卡触发，撒花动效+🏆，点击关闭)
 - [x] 糟糕一天警告弹窗 (sleep < 6 + exercise < 30 + 无完美番茄时触发)
 - [x] 日切精力上限变动写入日志流 (完美一天 🏆/糟糕一天 ⚠️，显示"上限 X→Y")
+- [x] 完美一天奖励即时生效 (打卡达成时立即 maxEnergy+1，不等日切)
+- [x] 删除 minEnergy + 新增 lowEnergyThreshold 可配置 (默认 20 点)
+- [x] 迁移工具提取 shared/utils/migration.ts (消除 storage/cloudSync 重复代码)
+- [x] 图标统一 (nap→😴, poop→💩，DEFAULT_TASK_DEFS 与 BUILTIN_ACTION_INFO 一致)
+- [x] 设置页日志改为 CompactLog 格式 (消除旧格式 {time, text} 写入)
 
 ## 交付质量规范
 

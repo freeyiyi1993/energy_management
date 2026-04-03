@@ -30,8 +30,8 @@ describe('DEFAULT_TASK_DEFS', () => {
     const perfectDayTasks = DEFAULT_TASK_DEFS.filter(d => d.countsForPerfectDay);
     const nonPerfectDayTasks = DEFAULT_TASK_DEFS.filter(d => !d.countsForPerfectDay);
 
-    expect(perfectDayTasks.map(d => d.id)).toEqual(['sleep', 'exercise', 'meals', 'water']);
-    expect(nonPerfectDayTasks.map(d => d.id)).toEqual(['stretch', 'nap', 'meditate', 'poop']);
+    expect(perfectDayTasks.map(d => d.id)).toEqual(['sleep', 'exercise', 'meals', 'water', 'nap', 'poop']);
+    expect(nonPerfectDayTasks.map(d => d.id)).toEqual(['stretch', 'meditate']);
   });
 
   it('should have correct task types', () => {

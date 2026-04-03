@@ -97,7 +97,7 @@ interface StorageData {
   state: AppState
   tasks: Tasks
   logs: CompactLog[]
-  statsHistory: StatsSnapshot[]
+  statsHistory: StatEntry[]
 }
 ```
 
@@ -107,7 +107,6 @@ interface StorageData {
 // 系统配置
 interface Config {
   maxEnergy: number       // 精力上限 (默认 65)
-  minEnergy: number       // 精力下限 (默认 0)
   smallHeal: number       // 小恢复量 (默认 2)
   midHeal: number         // 中恢复量 (默认 5)
   bigHealRatio: number    // 大恢复比例 (默认 0.2, 按睡眠时长缩放)
@@ -115,6 +114,7 @@ interface Config {
   penaltyMultiplier: number // 惩罚倍数 (默认 1.5)
   perfectDayBonus: number // 完美一天奖励 (默认 1)
   badDayPenalty: number   // 糟糕一天惩罚 (默认 1)
+  lowEnergyThreshold: number  // 低精力提醒阈值 (默认 20)
 }
 
 // 每日状态
@@ -133,7 +133,7 @@ interface AppState {
 // 番茄钟计时器 (原子同步，以 updatedAt 判定胜出方)
 interface PomodoroTimer {
   status: 'ongoing' | 'idle'  // 运行状态 (timeLeft 由 startedAt 推算)
-  startedAt: number | null    // 开始时间戳 (idle 时为 null)
+  startedAt: number | undefined // 开始时间戳 (idle 时为 undefined)
   updatedAt: number           // 最后更新时间戳 (用于原子合并)
   consecutiveCount: number    // 连续完成数 (与计时器原子绑定)
 }
@@ -162,7 +162,7 @@ interface CustomTaskDef {
 type CompactLog = [number, number, number, number]
 
 // 统计快照 (每日结算时记录)
-interface StatsSnapshot {
+interface StatEntry {
   date: string
   maxEnergy: number
   energyConsumed: number
@@ -184,7 +184,7 @@ Firestore Root
         ├── logs: {_t, _a, _v, _d}[]  // 对象数组，每个元素对应一条 CompactLog
         │                              // _t=timestamp, _a=action, _v=value, _d=energyDiff
         │                              // Firestore 不支持嵌套数组，改用对象数组存储
-        ├── statsHistory: StatsSnapshot[]
+        ├── statsHistory: StatEntry[]
         └── dataResetAt: number | null // 软删除时间戳，该时间之前的数据视为已删除
 ```
 
@@ -391,6 +391,7 @@ function calculateRecovery(config, taskDef, value): number
 function checkPomodoroExpired(pomodoro): boolean
 function isPerfectDay(taskDefs, tasks, pomoPerfectCount): boolean
 function calculateMaxEnergyDelta(config, taskDefs, tasks, pomoPerfectCount, logs): number
+// 注: 仅处理糟糕一天惩罚，完美一天奖励在打卡时立即生效
 ```
 
 ## 7. 构建架构
@@ -426,12 +427,20 @@ function calculateMaxEnergyDelta(config, taskDefs, tasks, pomoPerfectCount, logs
 │   ├── components/            #   MainDashboard, StatsPage, RulesPage, SettingsPage, MenuPanel
 │   └── public/                #   共享静态资源 (图标等)
 │
-├── tests/                     # 测试 (76 cases)
-│   ├── logic.test.ts          #   核心逻辑单测 (29 cases)
-│   ├── storage.test.ts        #   存储/同步单测 (16 cases)
-│   ├── utils.test.ts          #   工具函数单测 (13 cases)
-│   ├── types.test.ts          #   类型兼容性测试 (8 cases)
-│   └── web_ui.test.ts         #   Puppeteer UI 自动化测试 (6 cases)
+├── tests/                     # 测试 (165 cases)
+│   ├── logic.test.ts          #   核心逻辑单测
+│   ├── ticker.test.ts         #   共享 ticker 单测
+│   ├── pomoSubmit.test.ts     #   番茄提交单测
+│   ├── storage.test.ts        #   同步合并/迁移/Firestore 转换
+│   ├── utils.test.ts          #   时间工具
+│   ├── types.test.ts          #   类型结构验证
+│   ├── web_ui.test.ts         #   Puppeteer UI 自动化
+│   ├── background.test.ts     #   background tick handler
+│   └── components/            #   UI 组件测试
+│       ├── MainDashboard.test.tsx
+│       ├── PomodoroRing.test.tsx
+│       ├── SettingsPage.test.tsx
+│       └── BaseAuthPanel.test.tsx
 ├── docs/                      # 项目文档
 ├── dist/                      # Chrome 扩展构建产物
 ├── dist-web/                  # Web 版构建产物

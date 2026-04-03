@@ -1,4 +1,5 @@
-import { type StorageData, type AppLogEntry, type PomodoroTimer } from './types';
+import { type StorageData, type AppLogEntry } from './types';
+import { logsToFirestore, logsFromFirestore, migratePomodoro } from './utils/migration';
 
 // --- 云同步服务接口 ---
 // 各平台可实现不同的云同步后端（如 Firebase、Supabase 等）
@@ -27,36 +28,6 @@ export function createFirebaseSync(uid: string): CloudSyncService {
       return snap.data() as StorageData & { lastSyncAt?: number };
     },
   };
-}
-
-// --- Firestore 日志转换（从 storage.ts 迁移，避免循环依赖） ---
-
-function logsToFirestore(logs: AppLogEntry[]): (AppLogEntry | { _t: number; _a: number; _v: number; _d: number })[] {
-  return logs.map(entry =>
-    Array.isArray(entry) ? { _t: entry[0], _a: entry[1], _v: entry[2], _d: entry[3] } : entry
-  );
-}
-
-function logsFromFirestore(logs: (AppLogEntry | { _t: number; _a: number; _v: number; _d: number })[]): AppLogEntry[] {
-  return logs.map(entry =>
-    (entry && typeof entry === 'object' && '_t' in entry) ? [entry._t, entry._a, entry._v, entry._d] as AppLogEntry : entry as AppLogEntry
-  );
-}
-
-/** 检测并迁移旧版 PomodoroState → PomodoroTimer */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 旧格式结构不确定
-function migratePomodoro(state: Record<string, any> | null | undefined): void {
-  if (!state?.pomodoro) return;
-  const p = state.pomodoro;
-  if ('status' in p) return;
-  state.pomodoro = {
-    status: p.running ? 'ongoing' : 'idle',
-    startedAt: p.startedAt ?? undefined,
-    updatedAt: state.lastUpdateTime || Date.now(),
-    consecutiveCount: p.consecutiveCount || 0,
-  } as PomodoroTimer;
-  state.pomoCount = state.pomoCount ?? p.count ?? 0;
-  state.pomoPerfectCount = state.pomoPerfectCount ?? p.perfectCount ?? 0;
 }
 
 // --- 云端上传/下载（封装格式转换逻辑） ---

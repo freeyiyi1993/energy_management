@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { type StorageData, type Config, type CustomTaskDef, type HealLevel, DEFAULT_TASK_DEFS, DEFAULT_CONFIG } from '../types';
 import { type StorageInterface } from '../storage';
+import { CONFIG_UPDATE_ACTION_ID } from '../constants/actionMapping';
 import TaskEditModal from './TaskEditModal';
 
 interface Props {
@@ -63,7 +64,7 @@ export default function SettingsPage({ data, storage, onBack, onSaved }: Props) 
     }
 
     const logs = d.logs || [];
-    logs.unshift({ time: new Date().toLocaleString(), text: `⚙️ 系统配置已更新` });
+    logs.unshift([Date.now(), CONFIG_UPDATE_ACTION_ID, 0, 0]);
 
     // 一次写入，消除 tick 覆盖窗口
     await storage.set({ config, taskDefs, state: d.state, logs });
@@ -82,6 +83,7 @@ export default function SettingsPage({ data, storage, onBack, onSaved }: Props) 
       type: 'boolean',
       healLevel: 'small',
       enabled: true,
+      countsForPerfectDay: true,
     };
     setEditingTask(newTask);
   };
@@ -135,6 +137,7 @@ export default function SettingsPage({ data, storage, onBack, onSaved }: Props) 
         <div className="font-bold my-3 text-[13px]">🔥 日常消耗</div>
         <InputRow config={config} onChange={handleChange} label="基础消耗速率 (点/时)" field="decayRate" min={0} step="0.5" />
         <InputRow config={config} onChange={handleChange} label="错过饭点惩罚倍率" field="penaltyMultiplier" min={1} step="0.1" />
+        <InputRow config={config} onChange={handleChange} label="低精力提醒阈值 (点)" field="lowEnergyThreshold" min={0} />
 
         <div className="font-bold my-3 text-[13px]">📈 长期成长 (上限升降)</div>
         <InputRow config={config} onChange={handleChange} label="完美一天上限提升" field="perfectDayBonus" min={0} />

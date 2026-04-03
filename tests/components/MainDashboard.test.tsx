@@ -167,8 +167,8 @@ describe('MainDashboard', () => {
   // --- 完美一天庆祝弹窗 (要求任务完成 + 4个完美番茄) ---
 
   const perfectState = makeState({ pomoPerfectCount: 4 });
-  const perfectTasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5, stretch: null, nap: null, meditate: null, poop: null };
-  const almostPerfectTasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 4, stretch: null, nap: null, meditate: null, poop: null };
+  const perfectTasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5, stretch: null, nap: true, meditate: null, poop: true };
+  const almostPerfectTasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 4, stretch: null, nap: true, meditate: null, poop: true };
 
   it('shows celebration when last counter task completes all tasks (with enough pomodoros)', () => {
     const before = makeData({ tasks: almostPerfectTasks, state: perfectState });

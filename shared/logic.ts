@@ -40,6 +40,7 @@ export function checkPomodoroExpired(pomodoro: PomodoroTimer, now: number): { ex
 /** 判断是否完美一天 */
 export function isPerfectDay(tasks: Tasks, taskDefs: CustomTaskDef[]): boolean {
   const perfectDayDefs = taskDefs.filter(d => d.enabled && d.countsForPerfectDay);
+  if (perfectDayDefs.length === 0) return false; // 无计入任务时不算完美
   return perfectDayDefs.every(def => {
     const v = tasks[def.id];
     if (def.type === 'counter') return (v as number || 0) >= (def.maxCount || 3);
@@ -62,15 +63,12 @@ export function isBadDay(tasks: Tasks, pomoPerfectCount: number): boolean {
   return pomoPerfectCount === 0 && (!exerciseVal || exerciseVal < 30) && (!sleepVal || sleepVal < 6);
 }
 
-/** 日切时计算 maxEnergy 变化 */
+/** 日切时计算 maxEnergy 变化（仅糟糕一天惩罚，完美一天奖励在打卡时即时生效） */
 export function calculateMaxEnergyDelta(
-  tasks: Tasks, taskDefs: CustomTaskDef[],
+  tasks: Tasks, _taskDefs: CustomTaskDef[],
   _pomoCount: number, pomoPerfectCount: number, config: Config
 ): number {
   let delta = 0;
-  if (isFullPerfectDay(tasks, taskDefs, pomoPerfectCount)) {
-    delta += config.perfectDayBonus;
-  }
   if (isBadDay(tasks, pomoPerfectCount)) {
     delta -= config.badDayPenalty;
   }

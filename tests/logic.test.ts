@@ -133,24 +133,24 @@ describe('isPerfectDay', () => {
   const defs = DEFAULT_TASK_DEFS;
 
   it('all perfect day tasks completed: true', () => {
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5 };
+    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5, nap: true, poop: true };
     expect(isPerfectDay(tasks, defs)).toBe(true);
   });
 
   it('one task missing: false', () => {
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 2, water: 5 };
+    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 2, water: 5, nap: true, poop: true };
     expect(isPerfectDay(tasks, defs)).toBe(false);
   });
 
   it('non-countsForPerfectDay tasks ignored', () => {
-    // stretch/nap/meditate/poop have countsForPerfectDay: false
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5, stretch: 0, nap: false };
+    // stretch/meditate have countsForPerfectDay: false
+    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5, nap: true, poop: true, stretch: 0 };
     expect(isPerfectDay(tasks, defs)).toBe(true);
   });
 
   it('disabled tasks ignored', () => {
     const customDefs = defs.map(d => d.id === 'water' ? { ...d, enabled: false } : d);
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3 }; // no water needed
+    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, nap: true, poop: true }; // no water needed
     expect(isPerfectDay(tasks, customDefs)).toBe(true);
   });
 
@@ -163,7 +163,7 @@ describe('isPerfectDay', () => {
 
 describe('isFullPerfectDay', () => {
   const defs = DEFAULT_TASK_DEFS;
-  const allDone: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5 };
+  const allDone: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5, nap: true, poop: true };
 
   it('all tasks done + enough perfect pomos: true', () => {
     expect(isFullPerfectDay(allDone, defs, PERFECT_POMODOROS_REQUIRED)).toBe(true);
@@ -174,7 +174,7 @@ describe('isFullPerfectDay', () => {
   });
 
   it('enough pomos but tasks incomplete: false', () => {
-    expect(isFullPerfectDay({ sleep: 8, exercise: 30, meals: 2, water: 5 }, defs, PERFECT_POMODOROS_REQUIRED)).toBe(false);
+    expect(isFullPerfectDay({ sleep: 8, exercise: 30, meals: 2, water: 5, nap: true, poop: true }, defs, PERFECT_POMODOROS_REQUIRED)).toBe(false);
   });
 
   it('PERFECT_POMODOROS_REQUIRED is 4', () => {
@@ -242,15 +242,9 @@ describe('isBadDay and calculateMaxEnergyDelta consistency', () => {
 describe('calculateMaxEnergyDelta', () => {
   const defs = DEFAULT_TASK_DEFS;
 
-  it('perfect day with 4+ perfect pomos: +bonus', () => {
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5 };
+  it('perfect day: no bonus at day rollover (applied immediately on check-in)', () => {
+    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5, nap: true, poop: true };
     const delta = calculateMaxEnergyDelta(tasks, defs, 5, 4, config);
-    expect(delta).toBe(config.perfectDayBonus);
-  });
-
-  it('perfect day but only 3 perfect pomos: no bonus', () => {
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5 };
-    const delta = calculateMaxEnergyDelta(tasks, defs, 5, 3, config);
     expect(delta).toBe(0);
   });
 

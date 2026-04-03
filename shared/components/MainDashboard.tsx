@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Menu, BarChart2 } from 'lucide-react';
-import { type StorageData, type PageType, DEFAULT_TASK_DEFS } from '../types';
-import { type StorageInterface } from '../storage';
+import { type StorageData, type PageType, DEFAULT_TASK_DEFS, DEFAULT_CONFIG } from '../types';
+import { type StorageInterface, migrateTaskDefs } from '../storage';
 import { isFullPerfectDay, isBadDay } from '../logic';
 import { PERFECT_DAY_ACTION_ID } from '../constants/actionMapping';
 import EnergyBar from './EnergyBar';
@@ -41,7 +41,7 @@ interface Props {
 
 export default function MainDashboard({ data, storage, onOpenMenu, onDataChange, onNavigate, flat, compact }: Props) {
   const { state, tasks, config } = data;
-  const allTaskDefs = data.taskDefs || DEFAULT_TASK_DEFS;
+  const allTaskDefs = migrateTaskDefs(data.taskDefs) || DEFAULT_TASK_DEFS;
   const taskDefs = allTaskDefs.filter(d => d.enabled);
 
   // 弹窗要求任务 + 完美番茄（isFullPerfectDay），和日切 maxEnergy 奖励一致
@@ -57,12 +57,19 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
     if (!shownThisSession.has(`perfect-${logicalDate}`)) {
       shownThisSession.add(`perfect-${logicalDate}`);
       setDayResult('perfect');
-      // 写入日志流
-      const d = await storage.get(['state', 'logs']);
+      // 即时生效：maxEnergy +bonus，同步 config 和 state，写入日志
+      const d = await storage.get(['state', 'logs', 'config']);
       if (d.state) {
+        const cfg = d.config || config || DEFAULT_CONFIG;
+        const bonus = cfg.perfectDayBonus;
+        const oldMax = d.state.maxEnergy;
+        const newMax = oldMax + bonus;
+        d.state.maxEnergy = newMax;
+        cfg.maxEnergy = newMax;
         const logs = d.logs || [];
-        logs.unshift([Date.now(), PERFECT_DAY_ACTION_ID, d.state.maxEnergy, 0]);
-        await storage.set({ logs });
+        logs.unshift([Date.now(), PERFECT_DAY_ACTION_ID, newMax, bonus]);
+        await storage.set({ state: d.state, config: cfg, logs });
+        onDataChange();
       }
     }
   };
@@ -91,7 +98,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
         <div className="w-7"></div>
       </div>
 
-      <EnergyBar state={state} className={card} />
+      <EnergyBar state={state} config={config} className={card} />
 
       <PomodoroRing state={state} storage={storage} onDataChange={onDataChange} compact={compact} className={card} />
 
