@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { type CustomTaskDef, type Tasks, type Config, DEFAULT_TASK_DEFS } from '../types';
 import { type StorageInterface } from '../storage';
-import { calculateRecovery, isPerfectDay } from '../logic';
+import { calculateRecovery } from '../logic';
 import { BUILTIN_ACTION_ID, CUSTOM_ACTION_ID_OFFSET } from '../constants/actionMapping';
 
 interface Props {
@@ -10,11 +10,10 @@ interface Props {
   taskDefs: CustomTaskDef[];
   storage: StorageInterface;
   onDataChange: () => void;
-  onPerfectDay?: () => void;
   className?: string;
 }
 
-export default function TaskGrid({ tasks, config, taskDefs, storage, onDataChange, onPerfectDay, className }: Props) {
+export default function TaskGrid({ tasks, config, taskDefs, storage, onDataChange, className }: Props) {
   const [localInputs, setLocalInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -45,8 +44,6 @@ export default function TaskGrid({ tasks, config, taskDefs, storage, onDataChang
 
     const currentConfig = d.config || config;
     const oldEnergy = d.state.energy;
-    const allDefs = d.taskDefs || DEFAULT_TASK_DEFS;
-    const wasPerfect = isPerfectDay(d.tasks, allDefs);
 
     if (isCounter) {
       d.tasks[def.id] = ((d.tasks[def.id] as number) || 0) + 1;
@@ -61,6 +58,7 @@ export default function TaskGrid({ tasks, config, taskDefs, storage, onDataChang
       d.state.energyConsumed = (d.state.energyConsumed || 0) + Math.abs(energyDiff);
     }
 
+    const allDefs = d.taskDefs || DEFAULT_TASK_DEFS;
     const actionId = BUILTIN_ACTION_ID[def.id] ?? (CUSTOM_ACTION_ID_OFFSET + allDefs.findIndex(d2 => d2.id === def.id));
 
     let numericVal = 1;
@@ -71,11 +69,6 @@ export default function TaskGrid({ tasks, config, taskDefs, storage, onDataChang
     const logs = d.logs || [];
     logs.unshift([Date.now(), actionId, numericVal, Number(energyDiff.toFixed(1))]);
     await storage.set({ tasks: d.tasks, state: d.state, logs });
-
-    if (onPerfectDay && !wasPerfect && isPerfectDay(d.tasks, allDefs)) {
-      onPerfectDay();
-    }
-
     onDataChange();
   };
 

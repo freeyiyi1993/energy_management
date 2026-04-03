@@ -45,6 +45,11 @@ export function isPerfectDay(tasks: Tasks, taskDefs: CustomTaskDef[]): boolean {
   });
 }
 
+/** 完美一天完整条件：所有 perfectDay 任务完成 + 4 个完美番茄 */
+export function isFullPerfectDay(tasks: Tasks, taskDefs: CustomTaskDef[], pomoPerfectCount: number): boolean {
+  return isPerfectDay(tasks, taskDefs) && pomoPerfectCount >= 4;
+}
+
 /** 日切时计算 maxEnergy 变化 */
 export function calculateMaxEnergyDelta(
   tasks: Tasks, taskDefs: CustomTaskDef[],
@@ -54,7 +59,7 @@ export function calculateMaxEnergyDelta(
   const sleepVal = tasks['sleep'] as number | null;
   const exerciseVal = tasks['exercise'] as number | null;
 
-  if (isPerfectDay(tasks, taskDefs) && pomoPerfectCount >= 4) {
+  if (isFullPerfectDay(tasks, taskDefs, pomoPerfectCount)) {
     delta += config.perfectDayBonus;
   }
   if (pomoPerfectCount === 0 && (!exerciseVal || exerciseVal < 30) && (!sleepVal || sleepVal < 6)) {

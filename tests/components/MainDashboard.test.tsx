@@ -140,100 +140,95 @@ describe('MainDashboard', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  // --- 完美一天庆祝弹窗 ---
+  // --- 完美一天庆祝弹窗 (完美一天 = 所有 perfectDay 任务完成 + 4 个完美番茄) ---
 
-  it('shows celebration when last perfect-day task is completed (counter)', async () => {
-    // water at 4/5, all other perfect-day tasks done
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 4, stretch: null, nap: null, meditate: null, poop: null };
-    const data = makeData({ tasks });
-    const storageData = { ...data, tasks: { ...tasks } };
-    const storage = mockStorage(storageData);
+  const perfectTasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5, stretch: null, nap: null, meditate: null, poop: null };
+  const almostPerfectTasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 4, stretch: null, nap: null, meditate: null, poop: null };
 
-    render(<MainDashboard data={data} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+  it('shows celebration when last counter task completes perfect day', () => {
+    const before = makeData({ tasks: almostPerfectTasks, state: makeState({ pomoPerfectCount: 4 }) });
+    const after = makeData({ tasks: perfectTasks, state: makeState({ pomoPerfectCount: 4 }) });
+    const storage = mockStorage(before);
 
-    // Click water button (4/5 → 5/5, triggers perfect day)
-    const waterBtn = screen.getByRole('button', { name: /喝水打卡.*4\/5/ });
-    fireEvent.click(waterBtn);
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.queryByText('完美一天!')).toBeNull();
 
-    await waitFor(() => {
-      expect(screen.getByText('完美一天!')).toBeTruthy();
-    });
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('完美一天!')).toBeTruthy();
   });
 
-  it('shows celebration when last perfect-day task is completed (boolean)', async () => {
-    // Use only boolean+counter defs for simplicity
+  it('shows celebration when exercise (number type) completes perfect day', () => {
+    const noExercise = makeData({
+      tasks: { ...perfectTasks, exercise: null },
+      state: makeState({ pomoPerfectCount: 4 }),
+    });
+    const withExercise = makeData({
+      tasks: { ...perfectTasks, exercise: 30 },
+      state: makeState({ pomoPerfectCount: 4 }),
+    });
+    const storage = mockStorage(noExercise);
+
+    const { rerender } = render(<MainDashboard data={noExercise} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.queryByText('完美一天!')).toBeNull();
+
+    rerender(<MainDashboard data={withExercise} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('完美一天!')).toBeTruthy();
+  });
+
+  it('shows celebration when 4th perfect pomodoro completes perfect day', () => {
+    const before = makeData({ tasks: perfectTasks, state: makeState({ pomoPerfectCount: 3 }) });
+    const after = makeData({ tasks: perfectTasks, state: makeState({ pomoPerfectCount: 4 }) });
+    const storage = mockStorage(before);
+
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.queryByText('完美一天!')).toBeNull();
+
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('完美一天!')).toBeTruthy();
+  });
+
+  it('shows celebration when boolean task completes perfect day', () => {
     const simpleDefs: CustomTaskDef[] = [
       { id: 'water', name: '喝水打卡', icon: '💧', type: 'counter', healLevel: 'small', maxCount: 2, builtin: true, enabled: true, countsForPerfectDay: true },
       { id: 'nap',   name: '午间小憩', icon: '🌙', type: 'boolean', healLevel: 'small', builtin: true, enabled: true, countsForPerfectDay: true },
     ];
-    const tasks: Tasks = { water: 2, nap: null };
-    const data = makeData({ tasks, taskDefs: simpleDefs });
-    const storage = mockStorage({ ...data, tasks: { ...tasks } });
+    const before = makeData({ tasks: { water: 2, nap: null }, taskDefs: simpleDefs, state: makeState({ pomoPerfectCount: 4 }) });
+    const after = makeData({ tasks: { water: 2, nap: true }, taskDefs: simpleDefs, state: makeState({ pomoPerfectCount: 4 }) });
+    const storage = mockStorage(before);
 
-    render(<MainDashboard data={data} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.queryByText('完美一天!')).toBeNull();
 
-    const napBtn = screen.getByRole('button', { name: /午间小憩/ });
-    fireEvent.click(napBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('完美一天!')).toBeTruthy();
-    });
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('完美一天!')).toBeTruthy();
   });
 
-  it('does not show celebration when not yet perfect day', async () => {
-    // water at 3/5, clicking makes 4/5, still not perfect
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 3, stretch: null, nap: null, meditate: null, poop: null };
-    const data = makeData({ tasks });
-    const storageData = { ...data, tasks: { ...tasks } };
-    const storage = mockStorage(storageData);
+  it('does not show celebration when tasks done but pomoPerfectCount < 4', () => {
+    const before = makeData({ tasks: almostPerfectTasks, state: makeState({ pomoPerfectCount: 2 }) });
+    const after = makeData({ tasks: perfectTasks, state: makeState({ pomoPerfectCount: 2 }) });
+    const storage = mockStorage(before);
 
-    render(<MainDashboard data={data} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
-
-    const waterBtn = screen.getByRole('button', { name: /喝水打卡.*3\/5/ });
-    fireEvent.click(waterBtn);
-
-    await waitFor(() => {
-      expect(storage.set).toHaveBeenCalled();
-    });
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
     expect(screen.queryByText('完美一天!')).toBeNull();
   });
 
-  it('does not re-trigger celebration when already perfect day', async () => {
-    // All perfect-day tasks done, click a non-perfect-day counter (stretch 0/3)
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5, stretch: 0, nap: null, meditate: null, poop: null };
-    const data = makeData({ tasks });
-    const storageData = { ...data, tasks: { ...tasks } };
-    const storage = mockStorage(storageData);
-
-    render(<MainDashboard data={data} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
-
-    const stretchBtn = screen.getByRole('button', { name: /拉伸放松.*0\/3/ });
-    fireEvent.click(stretchBtn);
-
-    await waitFor(() => {
-      expect(storage.set).toHaveBeenCalled();
-    });
+  it('does not show celebration on first render even if already perfect', () => {
+    const data = makeData({ tasks: perfectTasks, state: makeState({ pomoPerfectCount: 4 }) });
+    render(<MainDashboard data={data} storage={mockStorage(data)} onOpenMenu={noop} onDataChange={noop} />);
     expect(screen.queryByText('完美一天!')).toBeNull();
   });
 
-  it('closes celebration on button click', async () => {
-    const tasks: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 4, stretch: null, nap: null, meditate: null, poop: null };
-    const data = makeData({ tasks });
-    const storage = mockStorage({ ...data, tasks: { ...tasks } });
+  it('closes celebration on button click', () => {
+    const before = makeData({ tasks: almostPerfectTasks, state: makeState({ pomoPerfectCount: 4 }) });
+    const after = makeData({ tasks: perfectTasks, state: makeState({ pomoPerfectCount: 4 }) });
+    const storage = mockStorage(before);
 
-    render(<MainDashboard data={data} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
-
-    const waterBtn = screen.getByRole('button', { name: /喝水打卡.*4\/5/ });
-    fireEvent.click(waterBtn);
-
-    await waitFor(() => {
-      expect(screen.getByText('完美一天!')).toBeTruthy();
-    });
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('完美一天!')).toBeTruthy();
 
     fireEvent.click(screen.getByText('太棒了'));
-
-    await waitFor(() => {
-      expect(screen.queryByText('完美一天!')).toBeNull();
-    });
+    expect(screen.queryByText('完美一天!')).toBeNull();
   });
 });
