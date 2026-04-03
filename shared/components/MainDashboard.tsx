@@ -100,7 +100,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
 
       <EnergyBar state={state} config={config} tasks={tasks} className={card} />
 
-      <PomodoroRing state={state} storage={storage} onDataChange={onDataChange} compact={compact} className={card} />
+      <PomodoroRing state={state} storage={storage} onDataChange={onDataChange} compact={compact} className={`${card} ${flat ? 'my-5' : 'my-4'}`} />
 
       <TaskGrid tasks={tasks} config={config} taskDefs={taskDefs} storage={storage} onDataChange={onDataChange} onPerfectDay={handlePerfectDay} className={card} />
 

@@ -1,14 +1,33 @@
-import { type StorageData } from '../../shared/types';
+import { type StorageData, type AppState } from '../../shared/types';
 import { initAppData } from '../../shared/ticker';
 import { handleTick } from './tickHandler';
 
 const storageSet = (data: Partial<StorageData>) =>
   chrome.storage.local.set(data);
 
+/** 更新浏览器 badge：番茄进行中显示倒计时，否则显示精力值 */
+function updateBadge(state: AppState | undefined) {
+  if (!state) return;
+  const pomo = state.pomodoro;
+  if (pomo.status === 'ongoing' && pomo.startedAt) {
+    const secsLeft = Math.max(0, 25 * 60 - (Date.now() - pomo.startedAt) / 1000);
+    const minsLeft = Math.ceil(secsLeft / 60);
+    chrome.action.setBadgeText({ text: `${minsLeft}m` });
+    chrome.action.setBadgeBackgroundColor({ color: '#10b981' });
+  } else {
+    chrome.action.setBadgeText({ text: `${Math.floor(state.energy)}` });
+    const threshold = 20; // 简化：badge 用固定阈值
+    chrome.action.setBadgeBackgroundColor({ color: state.energy < threshold ? '#ef4444' : '#6b7280' });
+  }
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   const data = (await chrome.storage.local.get(null)) as StorageData;
   await initAppData(data, storageSet);
   chrome.alarms.create("tick", { periodInMinutes: 1 });
+  // 初始化 badge
+  const fresh = (await chrome.storage.local.get('state')) as { state?: AppState };
+  updateBadge(fresh.state);
 });
 
 // Google OAuth: 使用 chrome.identity.getAuthToken，
@@ -30,6 +49,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ error: err.message ?? String(err) });
       });
     return true;
+  }
+});
+
+// storage 变化时更新 badge（打卡/番茄切换等 UI 操作）
+chrome.storage.local.onChanged.addListener((changes) => {
+  if (changes.state?.newValue) {
+    updateBadge(changes.state.newValue as AppState);
   }
 });
 
@@ -61,5 +87,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     for (const url of action.openTabs) {
       await chrome.tabs.create({ url });
     }
+
+    // 更新 badge
+    const latest = (await chrome.storage.local.get('state')) as { state?: AppState };
+    updateBadge(latest.state);
   }
 });

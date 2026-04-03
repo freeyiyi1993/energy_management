@@ -33,6 +33,9 @@ export default function PomodoroRing({ state, storage, onDataChange, compact, cl
     onDataChange();
   };
 
+  const perfectCount = state.pomoPerfectCount || 0;
+  const perfectDone = perfectCount >= PERFECT_POMODOROS_REQUIRED;
+
   return (
     <div className={className}>
       <div className={`${compact ? 'w-[110px]' : 'w-[140px]'} mx-auto`}>
@@ -47,10 +50,6 @@ export default function PomodoroRing({ state, storage, onDataChange, compact, cl
             <div className={`${compact ? 'text-2xl' : 'text-4xl'} font-bold transition-colors ${isOngoing ? 'text-emerald-500' : 'text-gray-300'}`}>
               {m}:{s}
             </div>
-            <div className="text-[10px] text-gray-400 mt-1">
-              总: {state.pomoCount || 0} | 完美: {state.pomoPerfectCount || 0}/{PERFECT_POMODOROS_REQUIRED}
-              {(state.pomoPerfectCount || 0) >= PERFECT_POMODOROS_REQUIRED ? ' ✅' : ''}
-            </div>
 
             {!isOngoing && (
               <div className="absolute inset-0 bg-white/85 rounded-full flex items-center justify-center text-emerald-500">
@@ -58,6 +57,9 @@ export default function PomodoroRing({ state, storage, onDataChange, compact, cl
               </div>
             )}
           </div>
+        </div>
+        <div className="text-center text-[10px] text-gray-400 mt-1.5">
+          总: {state.pomoCount || 0} | <span className={perfectDone ? 'text-amber-500' : ''}>完美{perfectDone ? '' : <span className="text-amber-400">★</span>}: {perfectCount}/{PERFECT_POMODOROS_REQUIRED}{perfectDone ? ' ✅' : ''}</span>
         </div>
       </div>
     </div>
