@@ -1,0 +1,21 @@
+{
+  "name": "精力管理",
+  "short_name": "精力管理",
+  "description": "游戏化管理你的精力和日常习惯",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2ea66f",
+  "theme_color": "#2ea66f",
+  "icons": [
+    {
+      "src": "/icons/icon48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    }
+  ]
+}
