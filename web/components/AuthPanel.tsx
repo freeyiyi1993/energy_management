@@ -25,7 +25,8 @@ export default function AuthPanel({ onSynced }: Props) {
       syncToCloudFn={syncToCloud}
       resetAllDataFn={resetAllData}
       alwaysNotifySynced
-      containerClassName="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 backdrop-blur p-2 z-10 pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
+      containerClassName="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white/95 backdrop-blur p-2 z-10"
+      containerStyle={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
     />
   );
 }

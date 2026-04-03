@@ -12,6 +12,7 @@ interface BaseAuthPanelProps {
   resetAllDataFn: (uid?: string) => Promise<void>;
   messageTimeout?: number;
   containerClassName?: string;
+  containerStyle?: React.CSSProperties;
   alwaysNotifySynced?: boolean;
 }
 
@@ -24,6 +25,7 @@ export default function BaseAuthPanel({
   resetAllDataFn,
   messageTimeout = 3000,
   containerClassName = 'fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-white p-2 z-10',
+  containerStyle,
   alwaysNotifySynced = false,
 }: BaseAuthPanelProps) {
   const [user, setUser] = useState<User | null>(null);
@@ -145,7 +147,7 @@ export default function BaseAuthPanel({
   };
 
   return (
-    <div className={containerClassName}>
+    <div className={containerClassName} style={containerStyle}>
       {message && (
         <div className="text-[10px] text-center text-emerald-600 mb-1 animate-[fadeIn_0.2s_ease]">
           {message}
