@@ -27,7 +27,7 @@ async function tick() {
     return;
   }
 
-  // Normal tick
+  // Normal tick — 用 delta 合并避免覆盖并发 UI 写入
   const now = Date.now();
   const result = processTick(data, now);
 
@@ -39,7 +39,16 @@ async function tick() {
     lowEnergyCallback();
   }
 
-  await storageSet({ state: result.state });
+  // 重新读取最新 state，仅合并 tick 拥有的字段
+  const fresh = await storage.get(['state']);
+  if (!fresh.state) return;
+  fresh.state.energy -= result.energyDrop;
+  fresh.state.energyConsumed = (fresh.state.energyConsumed || 0) + result.energyDrop;
+  fresh.state.lastUpdateTime = now;
+  if (result.lowEnergyTriggered) fresh.state.lowEnergyReminded = true;
+  if (result.pomoExpired) fresh.state.pomodoro = result.state.pomodoro;
+
+  await storageSet({ state: fresh.state });
 }
 
 let tickInterval: ReturnType<typeof setInterval> | null = null;

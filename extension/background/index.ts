@@ -37,9 +37,23 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === "tick") {
     const data = (await chrome.storage.local.get(null)) as StorageData;
     const finishUrl = chrome.runtime.getURL("extension/pages/finish/finish.html");
-    const action = handleTick(data, Date.now(), finishUrl);
+    const now = Date.now();
+    const action = handleTick(data, now, finishUrl);
 
-    if (Object.keys(action.toWrite).length > 0) {
+    if (action.type === 'tick' && action.tickResult) {
+      // delta 合并：重新读取最新 state，仅应用 tick 拥有的字段，避免覆盖并发 UI 写入
+      const fresh = (await chrome.storage.local.get('state')) as { state?: typeof data.state };
+      if (fresh.state) {
+        const r = action.tickResult;
+        fresh.state.energy -= r.energyDrop;
+        fresh.state.energyConsumed = (fresh.state.energyConsumed || 0) + r.energyDrop;
+        fresh.state.lastUpdateTime = now;
+        if (r.lowEnergyTriggered) fresh.state.lowEnergyReminded = true;
+        if (r.pomoExpired) fresh.state.pomodoro = r.state.pomodoro;
+        await storageSet({ state: fresh.state });
+      }
+    } else if (Object.keys(action.toWrite).length > 0) {
+      // 日切等整体写入
       await storageSet(action.toWrite);
     }
 

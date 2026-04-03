@@ -163,6 +163,8 @@ export function handleDayRollover(data: StorageData, todayStr: string): DayRollo
 export interface TickResult {
   /** 更新后的 state，需写入存储 */
   state: AppState;
+  /** tick 产生的精力衰减量（用于 delta 合并，避免覆盖并发 UI 写入） */
+  energyDrop: number;
   /** 是否触发低精力提醒 */
   lowEnergyTriggered: boolean;
   /** 番茄钟是否到期 */
@@ -208,5 +210,5 @@ export function processTick(data: StorageData, now: number): TickResult {
     isForcedBreak = pomoResult.isForcedBreak;
   }
 
-  return { state, lowEnergyTriggered, pomoExpired, isForcedBreak };
+  return { state, energyDrop: drop, lowEnergyTriggered, pomoExpired, isForcedBreak };
 }

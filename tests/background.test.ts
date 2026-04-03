@@ -44,7 +44,7 @@ describe('handleTick', () => {
   it('returns empty action when no state', () => {
     const result = handleTick({} as StorageData, Date.now(), FINISH_URL);
     expect(result.openTabs).toEqual([]);
-    expect(result.toWrite).toEqual({});
+    expect(result.type).toBe('none');
   });
 
   it('opens pomodoro finish page when timer expired', () => {
@@ -61,7 +61,7 @@ describe('handleTick', () => {
     expect(result.openTabs[0]).toContain('type=pomodoro');
     expect(result.openTabs[0]).toContain('forcedBreak=false');
     // state should mark pomodoro as idle
-    expect(result.toWrite.state?.pomodoro.status).toBe('idle');
+    expect(result.tickResult?.state.pomodoro.status).toBe('idle');
   });
 
   it('opens pomodoro finish page with forcedBreak when 3 consecutive', () => {
@@ -77,7 +77,7 @@ describe('handleTick', () => {
     expect(result.openTabs.length).toBe(1);
     expect(result.openTabs[0]).toContain('forcedBreak=true');
     // consecutiveCount should reset to 0 after forced break
-    expect(result.toWrite.state?.pomodoro.consecutiveCount).toBe(0);
+    expect(result.tickResult?.state.pomodoro.consecutiveCount).toBe(0);
   });
 
   it('does NOT open finish page when timer still running', () => {
@@ -91,7 +91,7 @@ describe('handleTick', () => {
     const result = handleTick(data, now, FINISH_URL);
 
     expect(result.openTabs).toEqual([]);
-    expect(result.toWrite.state?.pomodoro.status).toBe('ongoing');
+    expect(result.tickResult?.state.pomodoro.status).toBe('ongoing');
   });
 
   it('opens low energy page when energy drops below 20', () => {
@@ -106,7 +106,7 @@ describe('handleTick', () => {
     const result = handleTick(data, now, FINISH_URL);
 
     expect(result.openTabs.some(url => url.includes('type=energy'))).toBe(true);
-    expect(result.toWrite.state?.lowEnergyReminded).toBe(true);
+    expect(result.tickResult?.state.lowEnergyReminded).toBe(true);
   });
 
   it('does NOT open low energy page if already reminded', () => {
