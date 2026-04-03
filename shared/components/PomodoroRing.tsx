@@ -1,6 +1,7 @@
 import { Play } from 'lucide-react';
 import { type AppState } from '../types';
 import { type StorageInterface } from '../storage';
+import { PERFECT_POMODOROS_REQUIRED } from '../logic';
 
 interface Props {
   state: AppState;
@@ -47,7 +48,8 @@ export default function PomodoroRing({ state, storage, onDataChange, compact, cl
               {m}:{s}
             </div>
             <div className="text-[10px] text-gray-400 mt-1">
-              总: {state.pomoCount || 0} | 完美: {state.pomoPerfectCount || 0}
+              总: {state.pomoCount || 0} | 完美: {state.pomoPerfectCount || 0}/{PERFECT_POMODOROS_REQUIRED}
+              {(state.pomoPerfectCount || 0) >= PERFECT_POMODOROS_REQUIRED ? ' ✅' : ''}
             </div>
 
             {!isOngoing && (

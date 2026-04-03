@@ -234,6 +234,9 @@ npm run lint              # ESLint
 - [x] 迁移工具提取 shared/utils/migration.ts (消除 storage/cloudSync 重复代码)
 - [x] 图标统一 (nap→😴, poop→💩，DEFAULT_TASK_DEFS 与 BUILTIN_ACTION_INFO 一致)
 - [x] 设置页日志改为 CompactLog 格式 (消除旧格式 {time, text} 写入)
+- [x] 精力条右下角显示衰减速度 (含餐食惩罚标识)
+- [x] 统计页今日精力图: 低精力红色虚线水位线 + 饭点 10/14/19 竖线标记
+- [x] 完美一天进度可视化: 任务★标记 + 番茄钟完美数/4 进度
 
 ## 交付质量规范
 

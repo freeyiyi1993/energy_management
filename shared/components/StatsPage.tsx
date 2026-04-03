@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { type StorageData, type CompactLog } from '../types';
+import { type StorageData, type CompactLog, DEFAULT_CONFIG } from '../types';
 import { getLogicalDate } from '../utils/time';
-import { Chart, LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Tooltip, Legend } from 'chart.js';
+import { Chart, LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Tooltip, Legend, type Plugin } from 'chart.js';
 import LogBrowser from './LogBrowser';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, Title, CategoryScale, Tooltip, Legend);
@@ -86,8 +86,10 @@ export default function StatsPage({ data, onBack }: Props) {
   useEffect(() => {
     if (!todayChartRef.current || !data.state) return;
 
+    const config = data.config || DEFAULT_CONFIG;
     const maxEnergy = data.state.maxEnergy;
     const curEnergy = data.state.energy;
+    const lowThreshold = config.lowEnergyThreshold ?? 20;
     const now = Date.now();
 
     const [y, m, d] = getLogicalDate().split('-').map(Number);
@@ -109,6 +111,9 @@ export default function StatsPage({ data, onBack }: Props) {
 
     const labels: string[] = [];
     const energyData: number[] = [];
+    // 饭点标记索引
+    const mealMinutes = [2 * 60, 6 * 60, 11 * 60]; // 10:00, 14:00, 19:00 相对 8AM
+    const mealIndices: number[] = [];
     let cumDiffs = 0;
     for (let i = 0; i <= totalMins; i++) {
       if (diffByMin[i]) cumDiffs += diffByMin[i];
@@ -120,9 +125,70 @@ export default function StatsPage({ data, onBack }: Props) {
       const min = t.getMinutes();
       labels.push(min === 0 ? `${h}:00` : '');
       energyData.push(Number(e.toFixed(1)));
+
+      if (mealMinutes.includes(i) && min === 0) {
+        mealIndices.push(i);
+      }
     }
+    // 精确计算饭点索引
+    const mealIdx10 = Math.min(2 * 60, totalMins);
+    const mealIdx14 = Math.min(6 * 60, totalMins);
+    const mealIdx19 = Math.min(11 * 60, totalMins);
 
     if (todayChartInstance.current) todayChartInstance.current.destroy();
+
+    // 自定义插件：低精力水位线 + 饭点标记
+    const annotationPlugin: Plugin<'line'> = {
+      id: 'todayAnnotations',
+      afterDraw(chart) {
+        const ctx = chart.ctx;
+        const yScale = chart.scales['y'];
+        const xScale = chart.scales['x'];
+        if (!yScale || !xScale) return;
+
+        // 低精力阈值红色虚线
+        const yPos = yScale.getPixelForValue(lowThreshold);
+        if (yPos >= yScale.top && yPos <= yScale.bottom) {
+          ctx.save();
+          ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(xScale.left, yPos);
+          ctx.lineTo(xScale.right, yPos);
+          ctx.stroke();
+          ctx.fillStyle = '#ef4444';
+          ctx.font = '9px sans-serif';
+          ctx.fillText(`低精力 ${lowThreshold}`, xScale.right - 50, yPos - 3);
+          ctx.restore();
+        }
+
+        // 饭点竖线标记
+        const mealPoints = [
+          { idx: mealIdx10, label: '🍚10:00' },
+          { idx: mealIdx14, label: '🍚14:00' },
+          { idx: mealIdx19, label: '🍚19:00' },
+        ];
+        for (const mp of mealPoints) {
+          if (mp.idx > totalMins) continue;
+          const xPos = xScale.getPixelForValue(mp.idx);
+          if (xPos < xScale.left || xPos > xScale.right) continue;
+          ctx.save();
+          ctx.setLineDash([2, 3]);
+          ctx.strokeStyle = '#f59e0b80';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(xPos, yScale.top);
+          ctx.lineTo(xPos, yScale.bottom);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#b45309';
+          ctx.font = '9px sans-serif';
+          ctx.fillText(mp.label, xPos - 18, yScale.bottom + 12);
+          ctx.restore();
+        }
+      }
+    };
 
     todayChartInstance.current = new Chart(todayChartRef.current, {
       type: 'line',
@@ -143,11 +209,13 @@ export default function StatsPage({ data, onBack }: Props) {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
+        layout: { padding: { bottom: 14 } },
         scales: {
           y: { max: Math.ceil(maxEnergy * 1.1), title: { display: true, text: '精力', font: { size: 10 } }, ticks: { font: { size: 10 } } },
           x: { ticks: { font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } }
         }
-      }
+      },
+      plugins: [annotationPlugin],
     });
 
     return () => { if (todayChartInstance.current) todayChartInstance.current.destroy(); };

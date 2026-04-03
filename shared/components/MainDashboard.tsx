@@ -98,7 +98,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
         <div className="w-7"></div>
       </div>
 
-      <EnergyBar state={state} config={config} className={card} />
+      <EnergyBar state={state} config={config} tasks={tasks} className={card} />
 
       <PomodoroRing state={state} storage={storage} onDataChange={onDataChange} compact={compact} className={card} />
 

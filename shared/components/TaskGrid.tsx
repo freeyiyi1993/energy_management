@@ -91,7 +91,7 @@ export default function TaskGrid({ tasks, config, taskDefs, storage, onDataChang
             disabled={isMax}
             onClick={() => handleTaskSave(def, true)}
           >
-            {isMax ? `✅ 已满 (${maxCount}/${maxCount})` : <><span className="mr-1">{def.icon}</span> {def.name} ({count}/{maxCount})</>}
+            {isMax ? `✅ 已满 (${maxCount}/${maxCount})` : <><span className="mr-1">{def.icon}</span> {def.name} ({count}/{maxCount}){def.countsForPerfectDay && <span className="text-amber-400 ml-0.5">★</span>}</>}
           </button>
         </div>
       );
@@ -106,7 +106,7 @@ export default function TaskGrid({ tasks, config, taskDefs, storage, onDataChang
             disabled={isDone}
             onClick={() => handleTaskSave(def, true)}
           >
-            {isDone ? '✅ 已完成' : <><span className="mr-1">{def.icon}</span> {def.name}</>}
+            {isDone ? '✅ 已完成' : <><span className="mr-1">{def.icon}</span> {def.name}{def.countsForPerfectDay && <span className="text-amber-400 ml-0.5">★</span>}</>}
           </button>
         </div>
       );
@@ -116,7 +116,7 @@ export default function TaskGrid({ tasks, config, taskDefs, storage, onDataChang
     const localVal = localInputs[def.id] || '';
     return (
       <div key={def.id} className="flex flex-col text-xs">
-        <label className="mb-1 text-gray-600">{def.icon} {def.name}{def.unit ? `(${def.unit})` : ''}</label>
+        <label className="mb-1 text-gray-600">{def.icon} {def.name}{def.unit ? `(${def.unit})` : ''}{def.countsForPerfectDay && <span className="text-amber-400 ml-0.5">★</span>}</label>
         <input
           type="number"
           className="border border-gray-300 rounded p-1 text-xs outline-none focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500"
