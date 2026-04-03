@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { Menu, BarChart2 } from 'lucide-react';
 import { type StorageData, type PageType, DEFAULT_TASK_DEFS } from '../types';
 import { type StorageInterface } from '../storage';
-import { isFullPerfectDay } from '../logic';
+import { isFullPerfectDay, isBadDay } from '../logic';
 import EnergyBar from './EnergyBar';
 import PomodoroRing from './PomodoroRing';
 import TaskGrid from './TaskGrid';
 import ActivityLog from './ActivityLog';
 import PerfectDayCelebration from './PerfectDayCelebration';
+import BadDayWarning from './BadDayWarning';
 
 interface Props {
   data: StorageData;
@@ -21,12 +22,15 @@ interface Props {
 
 export default function MainDashboard({ data, storage, onOpenMenu, onDataChange, onNavigate, flat, compact }: Props) {
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showBadDay, setShowBadDay] = useState(false);
   const { state, tasks, config } = data;
   const taskDefs = (data.taskDefs || DEFAULT_TASK_DEFS).filter(d => d.enabled);
   const allTaskDefs = data.taskDefs || DEFAULT_TASK_DEFS;
 
   const nowPerfect = !!(state && tasks && isFullPerfectDay(tasks, allTaskDefs, state.pomoPerfectCount || 0));
+  const nowBad = !!(state && tasks && isBadDay(tasks, state.pomoPerfectCount || 0));
   const prevPerfectRef = useRef<boolean | null>(null);
+  const prevBadRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (prevPerfectRef.current === false && nowPerfect) {
@@ -34,6 +38,13 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
     }
     prevPerfectRef.current = nowPerfect;
   }, [nowPerfect]);
+
+  useEffect(() => {
+    if (prevBadRef.current === false && nowBad) {
+      setShowBadDay(true);
+    }
+    prevBadRef.current = nowBad;
+  }, [nowBad]);
 
   if (!state || !tasks || !config) return null;
 
@@ -73,6 +84,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
       <ActivityLog data={data} className={cardLast} />
 
       {showCelebration && <PerfectDayCelebration onClose={() => setShowCelebration(false)} />}
+      {showBadDay && <BadDayWarning onClose={() => setShowBadDay(false)} />}
     </div>
   );
 }

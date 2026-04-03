@@ -231,4 +231,71 @@ describe('MainDashboard', () => {
     fireEvent.click(screen.getByText('太棒了'));
     expect(screen.queryByText('完美一天!')).toBeNull();
   });
+
+  // --- 糟糕一天弹窗 (sleep < 6 已录入 + exercise < 30 或未录入 + 完美番茄 = 0) ---
+
+  it('shows bad day warning when sleep < 6 is entered with no exercise or pomodoros', () => {
+    const before = makeData({ tasks: { sleep: null, exercise: null, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null } });
+    const after = makeData({ tasks: { sleep: 4, exercise: null, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 0 }) });
+    const storage = mockStorage(before);
+
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.queryByText('糟糕一天')).toBeNull();
+
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('糟糕一天')).toBeTruthy();
+  });
+
+  it('shows bad day warning when sleep < 6 and exercise < 30', () => {
+    const before = makeData({ tasks: { sleep: null, exercise: 20, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 0 }) });
+    const after = makeData({ tasks: { sleep: 5, exercise: 20, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 0 }) });
+    const storage = mockStorage(before);
+
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('糟糕一天')).toBeTruthy();
+  });
+
+  it('does not show bad day if sleep not entered yet', () => {
+    const before = makeData({ tasks: { sleep: null, exercise: null, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 0 }) });
+    const after = makeData({ tasks: { sleep: null, exercise: null, meals: 1, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 0 }) });
+    const storage = mockStorage(before);
+
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.queryByText('糟糕一天')).toBeNull();
+  });
+
+  it('does not show bad day if exercise >= 30', () => {
+    const before = makeData({ tasks: { sleep: null, exercise: 30, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 0 }) });
+    const after = makeData({ tasks: { sleep: 4, exercise: 30, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 0 }) });
+    const storage = mockStorage(before);
+
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.queryByText('糟糕一天')).toBeNull();
+  });
+
+  it('does not show bad day if pomoPerfectCount > 0', () => {
+    const before = makeData({ tasks: { sleep: null, exercise: null, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 1 }) });
+    const after = makeData({ tasks: { sleep: 4, exercise: null, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 1 }) });
+    const storage = mockStorage(before);
+
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.queryByText('糟糕一天')).toBeNull();
+  });
+
+  it('closes bad day warning on button click', () => {
+    const before = makeData({ tasks: { sleep: null, exercise: null, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null } });
+    const after = makeData({ tasks: { sleep: 3, exercise: null, meals: null, water: null, stretch: null, nap: null, meditate: null, poop: null }, state: makeState({ pomoPerfectCount: 0 }) });
+    const storage = mockStorage(before);
+
+    const { rerender } = render(<MainDashboard data={before} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    rerender(<MainDashboard data={after} storage={storage} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('糟糕一天')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('知道了'));
+    expect(screen.queryByText('糟糕一天')).toBeNull();
+  });
 });

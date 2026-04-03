@@ -146,6 +146,52 @@ describe('handleDayRollover', () => {
     expect(toWrite.state!.maxEnergy).toBe(65 - DEFAULT_CONFIG.badDayPenalty);
   });
 
+  it('perfect day: writes log entry with maxEnergy change', () => {
+    const data: StorageData = {
+      config: DEFAULT_CONFIG,
+      taskDefs: DEFAULT_TASK_DEFS,
+      state: baseState({ logicalDate: '2026-03-30', maxEnergy: 65, pomoCount: 5, pomoPerfectCount: 4 }),
+      tasks: { sleep: 8, exercise: 30, meals: 3, water: 5, stretch: 3, nap: true, meditate: 3, poop: true },
+      stats: [],
+      logs: [],
+    };
+    const { toWrite } = handleDayRollover(data, '2026-03-31');
+    const perfectLog = toWrite.logs!.find((l: any) => l[1] === 9); // PERFECT_DAY_ACTION_ID
+    expect(perfectLog).toBeTruthy();
+    expect(perfectLog![2]).toBe(66); // new maxEnergy
+    expect(perfectLog![3]).toBe(DEFAULT_CONFIG.perfectDayBonus);
+  });
+
+  it('bad day: writes log entry with maxEnergy change', () => {
+    const data: StorageData = {
+      config: DEFAULT_CONFIG,
+      taskDefs: DEFAULT_TASK_DEFS,
+      state: baseState({ logicalDate: '2026-03-30', maxEnergy: 65, pomoCount: 0, pomoPerfectCount: 0 }),
+      tasks: { sleep: 4, exercise: 0, meals: 1, water: 1, stretch: 0, nap: false, meditate: 0, poop: false },
+      stats: [],
+      logs: [],
+    };
+    const { toWrite } = handleDayRollover(data, '2026-03-31');
+    const badLog = toWrite.logs!.find((l: any) => l[1] === 10); // BAD_DAY_ACTION_ID
+    expect(badLog).toBeTruthy();
+    expect(badLog![2]).toBe(64); // new maxEnergy
+    expect(badLog![3]).toBe(-DEFAULT_CONFIG.badDayPenalty);
+  });
+
+  it('normal day: no perfect/bad day log entries', () => {
+    const data: StorageData = {
+      config: DEFAULT_CONFIG,
+      taskDefs: DEFAULT_TASK_DEFS,
+      state: baseState({ logicalDate: '2026-03-30', maxEnergy: 65, energyConsumed: 20, pomoCount: 3, pomoPerfectCount: 1 }),
+      tasks: { sleep: 7, exercise: 30, meals: 2, water: 3, stretch: 0, nap: false, meditate: 0, poop: false },
+      stats: [],
+      logs: [],
+    };
+    const { toWrite } = handleDayRollover(data, '2026-03-31');
+    const settlementLogs = (toWrite.logs || []).filter((l: any) => l[1] === 9 || l[1] === 10);
+    expect(settlementLogs.length).toBe(0);
+  });
+
   it('resets pomodoro consecutiveCount', () => {
     const data: StorageData = {
       config: DEFAULT_CONFIG,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateDecay, calculateRecovery, checkPomodoroExpired, isPerfectDay, calculateMaxEnergyDelta } from '../shared/logic';
+import { calculateDecay, calculateRecovery, checkPomodoroExpired, isPerfectDay, isBadDay, calculateMaxEnergyDelta } from '../shared/logic';
 import { type Config, type CustomTaskDef, type PomodoroTimer, type Tasks, DEFAULT_CONFIG, DEFAULT_TASK_DEFS } from '../shared/types';
 
 const config: Config = { ...DEFAULT_CONFIG };
@@ -156,6 +156,35 @@ describe('isPerfectDay', () => {
 
   it('empty tasks: false', () => {
     expect(isPerfectDay({}, defs)).toBe(false);
+  });
+});
+
+// --- isBadDay ---
+
+describe('isBadDay', () => {
+  it('sleep < 6, no exercise, no perfect pomos: bad day', () => {
+    expect(isBadDay({ sleep: 4 }, 0)).toBe(true);
+  });
+
+  it('sleep < 6, exercise < 30, no perfect pomos: bad day', () => {
+    expect(isBadDay({ sleep: 5, exercise: 20 }, 0)).toBe(true);
+  });
+
+  it('sleep not entered: not bad day', () => {
+    expect(isBadDay({ sleep: null }, 0)).toBe(false);
+    expect(isBadDay({}, 0)).toBe(false);
+  });
+
+  it('sleep >= 6: not bad day', () => {
+    expect(isBadDay({ sleep: 6 }, 0)).toBe(false);
+  });
+
+  it('exercise >= 30: not bad day', () => {
+    expect(isBadDay({ sleep: 4, exercise: 30 }, 0)).toBe(false);
+  });
+
+  it('pomoPerfectCount > 0: not bad day', () => {
+    expect(isBadDay({ sleep: 4 }, 1)).toBe(false);
   });
 });
 

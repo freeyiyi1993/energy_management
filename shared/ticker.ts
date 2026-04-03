@@ -1,7 +1,8 @@
 import { type AppState, type Tasks, type StorageData, type CustomTaskDef, DEFAULT_TASK_DEFS, DEFAULT_CONFIG } from './types';
 import { getLogicalDate, getLogical8AM, buildEmptyTasks } from './utils/time';
 import { DEFAULT_POMODORO, migratePomodoro } from './storage';
-import { calculateDecay, calculateMaxEnergyDelta, checkPomodoroExpired } from './logic';
+import { calculateDecay, calculateMaxEnergyDelta, checkPomodoroExpired, isFullPerfectDay, isBadDay } from './logic';
+import { PERFECT_DAY_ACTION_ID, BAD_DAY_ACTION_ID } from './constants/actionMapping';
 
 /** 通用写入函数签名（由调用方注入，chrome.storage.local.set 或 localStorage wrapper） */
 export type StorageSetFn = (data: Partial<StorageData>) => Promise<void>;
@@ -114,6 +115,8 @@ export function handleDayRollover(data: StorageData, todayStr: string): DayRollo
     return v === null || v === undefined;
   }) && pomoCount === 0;
 
+  const logs = [...(data.logs || [])];
+
   if (!isNoInput) {
     const maxEnergyDelta = calculateMaxEnergyDelta(tasks, taskDefs, pomoCount, perfectCount, config);
 
@@ -126,6 +129,15 @@ export function handleDayRollover(data: StorageData, todayStr: string): DayRollo
     });
 
     state.maxEnergy += maxEnergyDelta;
+
+    // 日志记录精力上限变动
+    const now = Date.now();
+    if (isFullPerfectDay(tasks, taskDefs, perfectCount)) {
+      logs.unshift([now, PERFECT_DAY_ACTION_ID, state.maxEnergy, maxEnergyDelta]);
+    }
+    if (isBadDay(tasks, perfectCount)) {
+      logs.unshift([now, BAD_DAY_ACTION_ID, state.maxEnergy, maxEnergyDelta]);
+    }
   }
 
   state.logicalDate = todayStr;
@@ -138,7 +150,7 @@ export function handleDayRollover(data: StorageData, todayStr: string): DayRollo
   state.pomodoro.consecutiveCount = 0;
 
   return {
-    toWrite: { state, tasks: buildEmptyTasks(taskDefs), stats },
+    toWrite: { state, tasks: buildEmptyTasks(taskDefs), stats, logs },
   };
 }
 

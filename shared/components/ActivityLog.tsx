@@ -1,5 +1,5 @@
 import { type StorageData, type CompactLog, DEFAULT_TASK_DEFS } from '../types';
-import { BUILTIN_ACTION_ID, BUILTIN_ACTION_INFO, POMO_ACTION_ID, CUSTOM_ACTION_ID_OFFSET } from '../constants/actionMapping';
+import { BUILTIN_ACTION_ID, BUILTIN_ACTION_INFO, POMO_ACTION_ID, PERFECT_DAY_ACTION_ID, BAD_DAY_ACTION_ID, CUSTOM_ACTION_ID_OFFSET } from '../constants/actionMapping';
 
 interface Props {
   data: StorageData;
@@ -44,10 +44,13 @@ export default function ActivityLog({ data, className }: Props) {
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  const formatValue = (actionId: number, val: number) => {
+  const formatValue = (actionId: number, val: number, diff: number) => {
     if (actionId === BUILTIN_ACTION_ID.sleep) return `${val}h`;
     if (actionId === BUILTIN_ACTION_ID.exercise) return `${val}min`;
     if (actionId === POMO_ACTION_ID) return `${val}%`;
+    if (actionId === PERFECT_DAY_ACTION_ID || actionId === BAD_DAY_ACTION_ID) {
+      return `上限 ${val - diff}→${val}`;
+    }
     return String(val);
   };
 
@@ -66,7 +69,7 @@ export default function ActivityLog({ data, className }: Props) {
                 <span className="text-gray-400 w-10 shrink-0">{formatTime(ts)}</span>
                 <span className="shrink-0">{info.icon}</span>
                 <span className="shrink-0">{info.name}</span>
-                <span className="text-gray-400 shrink-0">{formatValue(actionId, val)}</span>
+                <span className="text-gray-400 shrink-0">{formatValue(actionId, val, diff)}</span>
                 <span className="ml-auto shrink-0 font-medium" style={{ color: diff > 0 ? '#10b981' : diff < 0 ? '#ef4444' : '#9ca3af' }}>
                   {diff > 0 ? `+${diff.toFixed(1)}` : diff < 0 ? diff.toFixed(1) : '0.0'}
                 </span>

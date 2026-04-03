@@ -50,6 +50,14 @@ export function isFullPerfectDay(tasks: Tasks, taskDefs: CustomTaskDef[], pomoPe
   return isPerfectDay(tasks, taskDefs) && pomoPerfectCount >= 4;
 }
 
+/** 糟糕一天判定：睡眠已录入且 < 6h + 运动未达标 + 无完美番茄 */
+export function isBadDay(tasks: Tasks, pomoPerfectCount: number): boolean {
+  const sleepVal = tasks['sleep'] as number | null;
+  const exerciseVal = tasks['exercise'] as number | null;
+  if (sleepVal === null || sleepVal === undefined) return false;
+  return pomoPerfectCount === 0 && sleepVal < 6 && (!exerciseVal || exerciseVal < 30);
+}
+
 /** 日切时计算 maxEnergy 变化 */
 export function calculateMaxEnergyDelta(
   tasks: Tasks, taskDefs: CustomTaskDef[],
