@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { type StorageData, type AppState, type PomodoroTimer, DEFAULT_CONFIG, DEFAULT_TASK_DEFS } from '../shared/types';
+import { getLogicalDate } from '../shared/utils/time';
 
 // Mock firebase
 vi.mock('../shared/firebase', () => ({
@@ -15,7 +16,7 @@ const FINISH_URL = 'chrome-extension://abc/finish.html';
 
 function makeState(overrides: Partial<AppState> = {}): AppState {
   return {
-    logicalDate: new Date().toLocaleDateString('en-CA'),
+    logicalDate: getLogicalDate(),
     energy: 50,
     maxEnergy: 65,
     energyConsumed: 0,

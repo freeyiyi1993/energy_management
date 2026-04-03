@@ -54,19 +54,19 @@ export default function SettingsPage({ data, storage, onBack, onSaved }: Props) 
   };
 
   const handleSave = async () => {
-    const oldConfig = data.config || DEFAULT_CONFIG;
-    await storage.set({ config, taskDefs });
+    // 一次读取，避免与 tick 竞态；用 storage 实时值算 diff 而非 props 快照
+    const d = await storage.get(['state', 'logs', 'config']);
+    const oldMaxEnergy = (d.config || DEFAULT_CONFIG).maxEnergy;
 
-    const d = await storage.get(['logs', 'state']);
     if (d.state) {
-      const diff = config.maxEnergy - oldConfig.maxEnergy;
-      d.state.maxEnergy += diff;
-      await storage.set({ state: d.state });
+      d.state.maxEnergy += config.maxEnergy - oldMaxEnergy;
     }
 
     const logs = d.logs || [];
     logs.unshift({ time: new Date().toLocaleString(), text: `⚙️ 系统配置已更新` });
-    await storage.set({ logs });
+
+    // 一次写入，消除 tick 覆盖窗口
+    await storage.set({ config, taskDefs, state: d.state, logs });
 
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
