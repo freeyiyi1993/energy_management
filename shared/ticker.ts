@@ -134,8 +134,7 @@ export function handleDayRollover(data: StorageData, todayStr: string): DayRollo
     const now = Date.now();
     if (isFullPerfectDay(tasks, taskDefs, perfectCount)) {
       logs.unshift([now, PERFECT_DAY_ACTION_ID, state.maxEnergy, maxEnergyDelta]);
-    }
-    if (isBadDay(tasks, perfectCount)) {
+    } else if (isBadDay(tasks, perfectCount)) {
       logs.unshift([now, BAD_DAY_ACTION_ID, state.maxEnergy, maxEnergyDelta]);
     }
   }

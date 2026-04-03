@@ -170,9 +170,9 @@ describe('isBadDay', () => {
     expect(isBadDay({ sleep: 5, exercise: 20 }, 0)).toBe(true);
   });
 
-  it('sleep not entered: not bad day', () => {
-    expect(isBadDay({ sleep: null }, 0)).toBe(false);
-    expect(isBadDay({}, 0)).toBe(false);
+  it('sleep not entered: still bad day (null = insufficient)', () => {
+    expect(isBadDay({ sleep: null }, 0)).toBe(true);
+    expect(isBadDay({}, 0)).toBe(true);
   });
 
   it('sleep >= 6: not bad day', () => {
@@ -185,6 +185,24 @@ describe('isBadDay', () => {
 
   it('pomoPerfectCount > 0: not bad day', () => {
     expect(isBadDay({ sleep: 4 }, 1)).toBe(false);
+  });
+});
+
+// --- isBadDay ↔ calculateMaxEnergyDelta consistency ---
+
+describe('isBadDay and calculateMaxEnergyDelta consistency', () => {
+  const defs = DEFAULT_TASK_DEFS;
+
+  it('penalty applied when isBadDay is true', () => {
+    const tasks: Tasks = { sleep: 4, exercise: 0 };
+    expect(isBadDay(tasks, 0)).toBe(true);
+    expect(calculateMaxEnergyDelta(tasks, defs, 0, 0, config)).toBe(-config.badDayPenalty);
+  });
+
+  it('no penalty when isBadDay is false (exercise >= 30)', () => {
+    const tasks: Tasks = { sleep: 4, exercise: 30 };
+    expect(isBadDay(tasks, 0)).toBe(false);
+    expect(calculateMaxEnergyDelta(tasks, defs, 0, 0, config)).toBe(0);
   });
 });
 

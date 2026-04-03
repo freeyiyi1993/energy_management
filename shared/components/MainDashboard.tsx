@@ -7,8 +7,22 @@ import EnergyBar from './EnergyBar';
 import PomodoroRing from './PomodoroRing';
 import TaskGrid from './TaskGrid';
 import ActivityLog from './ActivityLog';
-import PerfectDayCelebration from './PerfectDayCelebration';
-import BadDayWarning from './BadDayWarning';
+import DayResultModal, { type DayResultType } from './DayResultModal';
+
+/** 检测布尔值从 false 变为 true，首次渲染不触发 */
+function useTransition(value: boolean): boolean {
+  const prevRef = useRef<boolean | null>(null);
+  const [fired, setFired] = useState(false);
+
+  useEffect(() => {
+    if (prevRef.current === false && value) {
+      setFired(true);
+    }
+    prevRef.current = value;
+  }, [value]);
+
+  return fired;
+}
 
 interface Props {
   data: StorageData;
@@ -21,30 +35,25 @@ interface Props {
 }
 
 export default function MainDashboard({ data, storage, onOpenMenu, onDataChange, onNavigate, flat, compact }: Props) {
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [showBadDay, setShowBadDay] = useState(false);
   const { state, tasks, config } = data;
-  const taskDefs = (data.taskDefs || DEFAULT_TASK_DEFS).filter(d => d.enabled);
   const allTaskDefs = data.taskDefs || DEFAULT_TASK_DEFS;
+  const taskDefs = allTaskDefs.filter(d => d.enabled);
 
   const nowPerfect = !!(state && tasks && isFullPerfectDay(tasks, allTaskDefs, state.pomoPerfectCount || 0));
-  const nowBad = !!(state && tasks && isBadDay(tasks, state.pomoPerfectCount || 0));
-  const prevPerfectRef = useRef<boolean | null>(null);
-  const prevBadRef = useRef<boolean | null>(null);
+  // 弹窗需 sleep 已录入才触发（避免开局全 null 就弹），日切惩罚用 isBadDay 不需此限制
+  const nowBad = !!(state && tasks && tasks['sleep'] != null && isBadDay(tasks, state.pomoPerfectCount || 0));
+  const perfectFired = useTransition(nowPerfect);
+  const badFired = useTransition(nowBad);
+
+  const [dayResult, setDayResult] = useState<DayResultType | null>(null);
 
   useEffect(() => {
-    if (prevPerfectRef.current === false && nowPerfect) {
-      setShowCelebration(true);
-    }
-    prevPerfectRef.current = nowPerfect;
-  }, [nowPerfect]);
+    if (perfectFired) setDayResult('perfect');
+  }, [perfectFired]);
 
   useEffect(() => {
-    if (prevBadRef.current === false && nowBad) {
-      setShowBadDay(true);
-    }
-    prevBadRef.current = nowBad;
-  }, [nowBad]);
+    if (badFired && !perfectFired) setDayResult('bad');
+  }, [badFired, perfectFired]);
 
   if (!state || !tasks || !config) return null;
 
@@ -83,8 +92,7 @@ export default function MainDashboard({ data, storage, onOpenMenu, onDataChange,
 
       <ActivityLog data={data} className={cardLast} />
 
-      {showCelebration && <PerfectDayCelebration onClose={() => setShowCelebration(false)} />}
-      {showBadDay && <BadDayWarning onClose={() => setShowBadDay(false)} />}
+      {dayResult && <DayResultModal type={dayResult} onClose={() => setDayResult(null)} />}
     </div>
   );
 }

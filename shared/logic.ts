@@ -1,5 +1,8 @@
 import { type Config, type CustomTaskDef, type Tasks, type PomodoroTimer } from './types';
 
+/** 完美一天所需完美番茄数 */
+export const PERFECT_POMODOROS_REQUIRED = 4;
+
 /** 计算精力衰减量 */
 export function calculateDecay(config: Config, mealsCount: number, currentHour: number, minsPassed: number): number {
   let decayRate = config.decayRate / 60;
@@ -45,17 +48,16 @@ export function isPerfectDay(tasks: Tasks, taskDefs: CustomTaskDef[]): boolean {
   });
 }
 
-/** 完美一天完整条件：所有 perfectDay 任务完成 + 4 个完美番茄 */
+/** 完美一天完整条件：所有 perfectDay 任务完成 + N 个完美番茄 */
 export function isFullPerfectDay(tasks: Tasks, taskDefs: CustomTaskDef[], pomoPerfectCount: number): boolean {
-  return isPerfectDay(tasks, taskDefs) && pomoPerfectCount >= 4;
+  return isPerfectDay(tasks, taskDefs) && pomoPerfectCount >= PERFECT_POMODOROS_REQUIRED;
 }
 
-/** 糟糕一天判定：睡眠已录入且 < 6h + 运动未达标 + 无完美番茄 */
+/** 糟糕一天判定：无完美番茄 + 运动未达标 + 睡眠不足 (null 视为不足) */
 export function isBadDay(tasks: Tasks, pomoPerfectCount: number): boolean {
   const sleepVal = tasks['sleep'] as number | null;
   const exerciseVal = tasks['exercise'] as number | null;
-  if (sleepVal === null || sleepVal === undefined) return false;
-  return pomoPerfectCount === 0 && sleepVal < 6 && (!exerciseVal || exerciseVal < 30);
+  return pomoPerfectCount === 0 && (!exerciseVal || exerciseVal < 30) && (!sleepVal || sleepVal < 6);
 }
 
 /** 日切时计算 maxEnergy 变化 */
@@ -64,13 +66,10 @@ export function calculateMaxEnergyDelta(
   _pomoCount: number, pomoPerfectCount: number, config: Config
 ): number {
   let delta = 0;
-  const sleepVal = tasks['sleep'] as number | null;
-  const exerciseVal = tasks['exercise'] as number | null;
-
   if (isFullPerfectDay(tasks, taskDefs, pomoPerfectCount)) {
     delta += config.perfectDayBonus;
   }
-  if (pomoPerfectCount === 0 && (!exerciseVal || exerciseVal < 30) && (!sleepVal || sleepVal < 6)) {
+  if (isBadDay(tasks, pomoPerfectCount)) {
     delta -= config.badDayPenalty;
   }
   return delta;
