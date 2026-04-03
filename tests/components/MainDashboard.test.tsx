@@ -134,6 +134,26 @@ describe('MainDashboard', () => {
     expect(screen.getByText('8h')).toBeTruthy();
   });
 
+  it('shows perfect day log with maxEnergy transition', () => {
+    const now = Date.now();
+    const data = makeData({
+      logs: [[now - 1000, 9, 66, 1] as any], // PERFECT_DAY_ACTION_ID, newMax=66, delta=+1
+    });
+    render(<MainDashboard data={data} storage={mockStorage(data)} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('完美一天')).toBeTruthy();
+    expect(screen.getByText('上限 65→66')).toBeTruthy();
+  });
+
+  it('shows bad day log with maxEnergy transition', () => {
+    const now = Date.now();
+    const data = makeData({
+      logs: [[now - 1000, 10, 64, -1] as any], // BAD_DAY_ACTION_ID, newMax=64, delta=-1
+    });
+    render(<MainDashboard data={data} storage={mockStorage(data)} onOpenMenu={noop} onDataChange={noop} />);
+    expect(screen.getByText('糟糕一天')).toBeTruthy();
+    expect(screen.getByText('上限 65→64')).toBeTruthy();
+  });
+
   it('returns null when state is missing', () => {
     const data: StorageData = { config: DEFAULT_CONFIG, tasks: {}, taskDefs: DEFAULT_TASK_DEFS };
     const { container } = render(<MainDashboard data={data} storage={mockStorage(data)} onOpenMenu={noop} onDataChange={noop} />);

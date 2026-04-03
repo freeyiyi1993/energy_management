@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateDecay, calculateRecovery, checkPomodoroExpired, isPerfectDay, isBadDay, calculateMaxEnergyDelta } from '../shared/logic';
+import { calculateDecay, calculateRecovery, checkPomodoroExpired, isPerfectDay, isFullPerfectDay, isBadDay, calculateMaxEnergyDelta, PERFECT_POMODOROS_REQUIRED } from '../shared/logic';
 import { type Config, type CustomTaskDef, type PomodoroTimer, type Tasks, DEFAULT_CONFIG, DEFAULT_TASK_DEFS } from '../shared/types';
 
 const config: Config = { ...DEFAULT_CONFIG };
@@ -156,6 +156,29 @@ describe('isPerfectDay', () => {
 
   it('empty tasks: false', () => {
     expect(isPerfectDay({}, defs)).toBe(false);
+  });
+});
+
+// --- isFullPerfectDay ---
+
+describe('isFullPerfectDay', () => {
+  const defs = DEFAULT_TASK_DEFS;
+  const allDone: Tasks = { sleep: 8, exercise: 30, meals: 3, water: 5 };
+
+  it('all tasks done + enough perfect pomos: true', () => {
+    expect(isFullPerfectDay(allDone, defs, PERFECT_POMODOROS_REQUIRED)).toBe(true);
+  });
+
+  it('all tasks done but pomos < required: false', () => {
+    expect(isFullPerfectDay(allDone, defs, PERFECT_POMODOROS_REQUIRED - 1)).toBe(false);
+  });
+
+  it('enough pomos but tasks incomplete: false', () => {
+    expect(isFullPerfectDay({ sleep: 8, exercise: 30, meals: 2, water: 5 }, defs, PERFECT_POMODOROS_REQUIRED)).toBe(false);
+  });
+
+  it('PERFECT_POMODOROS_REQUIRED is 4', () => {
+    expect(PERFECT_POMODOROS_REQUIRED).toBe(4);
   });
 });
 

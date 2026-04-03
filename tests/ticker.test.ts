@@ -237,6 +237,7 @@ describe('processTick', () => {
     const expectedDrop = DEFAULT_CONFIG.decayRate / 60; // 1 minute of decay
     expect(result.state.energy).toBeCloseTo(65 - expectedDrop);
     expect(result.state.energyConsumed).toBeCloseTo(expectedDrop);
+    expect(result.energyDrop).toBeCloseTo(expectedDrop);
     expect(result.lowEnergyTriggered).toBe(false);
     expect(result.pomoExpired).toBe(false);
   });

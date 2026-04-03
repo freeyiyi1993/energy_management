@@ -80,6 +80,16 @@ describe('handleTick', () => {
     expect(result.tickResult?.state.pomodoro.consecutiveCount).toBe(0);
   });
 
+  it('normal tick returns tickResult with energyDrop for delta merge', () => {
+    const now = Date.now();
+    const data = makeData();
+    const result = handleTick(data, now, FINISH_URL);
+
+    expect(result.type).toBe('tick');
+    expect(result.tickResult).toBeDefined();
+    expect(result.tickResult!.energyDrop).toBeGreaterThan(0);
+  });
+
   it('does NOT open finish page when timer still running', () => {
     const now = Date.now();
     const data = makeData({
